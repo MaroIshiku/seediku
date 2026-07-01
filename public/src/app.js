@@ -206,13 +206,20 @@ function bindAppEvents() {
   });
   document.querySelector("[data-refresh]")?.addEventListener("click", refreshAll);
   document.querySelector("[data-open-add]")?.addEventListener("click", () => openSheet("#add-sheet"));
-  document.querySelector("[data-logout]")?.addEventListener("click", logout);
-  document.querySelector("[data-copy-debug]")?.addEventListener("click", copyDebug);
-  document.querySelectorAll("[data-theme-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityTheme(button.dataset.themeChoice)));
-  document.querySelectorAll("[data-mode-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityMode(button.dataset.modeChoice)));
+  document.querySelector("[data-psu-open='#profile-sheet']")?.addEventListener("click", refreshAdminProfile);
+  bindProfileEvents();
   window.addEventListener("psu:themechange", syncThemeButtons);
   syncThemeButtons();
   bindAddForm();
+}
+
+function bindProfileEvents() {
+  const profile = document.getElementById("profile-sheet");
+  if (!profile) return;
+  profile.querySelector("[data-logout]")?.addEventListener("click", logout);
+  profile.querySelector("[data-copy-debug]")?.addEventListener("click", copyDebug);
+  profile.querySelectorAll("[data-theme-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityTheme(button.dataset.themeChoice)));
+  profile.querySelectorAll("[data-mode-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityMode(button.dataset.modeChoice)));
 }
 
 function renderMainView() {
@@ -507,8 +514,32 @@ async function refreshAll() {
     toast(torrentPayload.reason.message);
   }
   if (dashboardPayload.status === "fulfilled") state.dashboard = dashboardPayload.value;
-  if (adminPayload.status === "fulfilled") state.admin = adminPayload.value;
+  if (adminPayload.status === "fulfilled") {
+    state.admin = adminPayload.value;
+    renderProfileSheet();
+  }
   renderMainView();
+}
+
+async function refreshAdminProfile() {
+  if (state.user?.role !== "admin") return;
+  try {
+    state.admin = await api("/api/admin");
+    renderProfileSheet();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+function renderProfileSheet() {
+  const current = document.getElementById("profile-sheet");
+  if (!current) return;
+  const wasOpen = !current.hidden;
+  current.outerHTML = profileSheet();
+  const next = document.getElementById("profile-sheet");
+  if (next && wasOpen) next.hidden = false;
+  bindProfileEvents();
+  syncThemeButtons();
 }
 
 function startRefresh() {
