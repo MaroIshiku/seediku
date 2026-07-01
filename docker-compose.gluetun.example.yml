@@ -10,7 +10,8 @@ services:
         condition: service_started
 
   gluetun:
-    image: qmcgaw/gluetun:latest
+    # Image: https://github.com/qdm12/gluetun/pkgs/container/gluetun
+    image: ghcr.io/qdm12/gluetun:latest
     container_name: seediku-gluetun
     restart: unless-stopped
     cap_add:
@@ -22,10 +23,11 @@ services:
       - "6881:6881/tcp"
       - "6881:6881/udp"
     environment:
-      TZ: "${TZ:-Europe/Berlin}"
-      VPN_SERVICE_PROVIDER: "${VPN_SERVICE_PROVIDER:-custom}"
-      VPN_TYPE: "${VPN_TYPE:-wireguard}"
-      # Provider-spezifische Werte bewusst nicht eintragen.
+      TZ: "Europe/Berlin"
+      # ANPASSEN: Provider, VPN-Typ und Zugangsdaten gemäß Gluetun-Doku setzen.
+      VPN_SERVICE_PROVIDER: "custom"
+      VPN_TYPE: "wireguard"
+      # ANPASSEN: Provider-spezifische Werte bewusst nicht vorausgefüllt.
       # Offizielle Anleitung: https://github.com/qdm12/gluetun/wiki
     healthcheck:
       test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
