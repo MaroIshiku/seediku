@@ -1,0 +1,58 @@
+services:
+  seediku:
+    build: .
+    image: seediku:local
+    container_name: seediku
+    restart: unless-stopped
+    ports:
+      - "8509:8509"
+    environment:
+      TZ: "${TZ:-Europe/Berlin}"
+      PORT: "8509"
+      ISHIKU_APP_URL: "${ISHIKU_APP_URL:-http://localhost:8509}"
+      ISHIKU_BASE_PATH: "${ISHIKU_BASE_PATH:-/}"
+      ISHIKU_DATA_DIR: "/data"
+      ISHIKU_LOG_LEVEL: "${ISHIKU_LOG_LEVEL:-info}"
+      ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
+      QBITTORRENT_URL: "http://qbittorrent:8185"
+      QBITTORRENT_USERNAME: "${QBITTORRENT_USERNAME:-admin}"
+      QBITTORRENT_PASSWORD: "${QBITTORRENT_PASSWORD:-adminadmin}"
+      QBITTORRENT_WEBUI_URL: "${QBITTORRENT_WEBUI_URL:-http://localhost:8185}"
+    volumes:
+      - ./data:/data
+      - ./config:/config
+    secrets:
+      - ishiku_setup_secret
+    depends_on:
+      qbittorrent:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8509/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:4.6.7
+    container_name: seediku-qbittorrent
+    restart: unless-stopped
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      TZ: "${TZ:-Europe/Berlin}"
+      WEBUI_PORT: "8185"
+      TORRENTING_PORT: "6881"
+    volumes:
+      - ./config/qbittorrent:/config
+      - ./downloads/incomplete:/downloads/incomplete
+      - ./downloads/complete:/downloads/complete
+      - ./downloads/watch:/downloads/watch
+    ports:
+      - "8185:8185"
+      - "6881:6881/tcp"
+      - "6881:6881/udp"
+
+secrets:
+  ishiku_setup_secret:
+    file: ./secrets/setup_secret.txt
