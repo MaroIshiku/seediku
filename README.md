@@ -45,15 +45,12 @@ Die App soll sich bewusst wie Teil einer gemeinsamen Suite anfühlen, nicht wie 
 
 ```bash
 mkdir -p secrets data config downloads/incomplete downloads/complete downloads/watch
-cp .env.example .env
-cp secrets/setup_secret.example.txt secrets/setup_secret.txt
 ```
 
-Lege anschließend ein langes zufälliges Setup-Secret an:
+Öffne anschließend `docker-compose.yml` und ersetze diesen Wert durch ein langes zufälliges Setup-Secret:
 
-```bash
-openssl rand -base64 48 > secrets/setup_secret.txt
-chmod 600 secrets/setup_secret.txt
+```yaml
+ISHIKU_SETUP_SECRET: "CHANGE-ME-seediku-first-run-setup-secret"
 ```
 
 Starte die App:
@@ -80,7 +77,7 @@ Beim ersten Öffnen zeigt Seediku automatisch das Registrierungsfenster für den
 
 Im Registrierungsfenster werden benötigt:
 
-- Setup-Secret aus `secrets/setup_secret.txt`
+- Setup-Secret aus `ISHIKU_SETUP_SECRET` in `docker-compose.yml`
 - Admin-Benutzername
 - Anzeigename
 - Admin-Passwort
@@ -98,16 +95,18 @@ Das Admin-Passwort darf nicht mit dem Setup-Secret übereinstimmen. Nach erfolgr
 | `ISHIKU_BASE_PATH` | Basis-Pfad hinter Reverse Proxy | `/` |
 | `ISHIKU_DATA_DIR` | Persistenter Datenpfad im Container | `/data` |
 | `ISHIKU_LOG_LEVEL` | Log-Level | `info` |
-| `ISHIKU_SETUP_SECRET_FILE` | Pfad zum Docker-Secret | `/run/secrets/ishiku_setup_secret` |
-| `ISHIKU_SETUP_SECRET` | Fallback-Secret als ENV, nur wenn kein Secret-File genutzt wird | leer |
+| `ISHIKU_SETUP_SECRET` | Setup-Secret für die erste Admin-Erstellung; in `docker-compose.yml` direkt gesetzt und vor Nutzung anzupassen | `CHANGE-ME...` |
+| `ISHIKU_SETUP_SECRET_FILE` | Optionaler Datei-Fallback, wenn die entsprechende Volume-Zeile in Compose einkommentiert wird | `/run/secrets/ishiku_setup_secret` |
 | `QBITTORRENT_URL` | Serverinterne qBittorrent API URL | `http://qbittorrent:8185` |
 | `QBITTORRENT_USERNAME` | qBittorrent API Benutzer | `admin` |
 | `QBITTORRENT_PASSWORD` | qBittorrent API Passwort | `adminadmin` |
 | `QBITTORRENT_WEBUI_URL` | Link zur optionalen qBittorrent-WebUI | `http://localhost:8185` |
 
-### Docker Secrets
+### Setup-Secret
 
-Bevorzugt wird ein Docker/Compose Secret als Datei. In `docker-compose.yml` wird dieses Secret nach `/run/secrets/ishiku_setup_secret` gemountet. Das Setup-Secret ist nur für die erste Admin-Registrierung gedacht und wird nicht im Client offengelegt.
+Der Standardweg ist bewusst direkt in `docker-compose.yml`, damit ZimaOS- und Compose-Nutzer ohne zusätzliche Secret-Datei starten können. Ersetze den `CHANGE-ME...`-Wert vor dem ersten Start.
+
+Die Datei `secrets/setup_secret.txt` bleibt als Fallback vorhanden. Wenn du sie nutzen möchtest, lege sie an, kommentiere in `docker-compose.yml` die Volume-Zeile für `/run/secrets/ishiku_setup_secret` ein und aktiviere `ISHIKU_SETUP_SECRET_FILE`.
 
 ### Persistente Daten
 
@@ -156,7 +155,7 @@ npm install
 npm run dev
 ```
 
-Für lokale Entwicklung ohne Docker Secret kann `ISHIKU_SETUP_SECRET` gesetzt werden. Im normalen Compose-Betrieb sollte stattdessen `secrets/setup_secret.txt` verwendet werden.
+Für lokale Entwicklung und den normalen Compose-Betrieb kann `ISHIKU_SETUP_SECRET` direkt gesetzt werden. `secrets/setup_secret.txt` ist nur der optionale Datei-Fallback.
 
 Codex soll bei Änderungen das gemeinsame Pixel Soft Utility Designsystem beibehalten und keine app-spezifischen UI-Abweichungen einführen.
 

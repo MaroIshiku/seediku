@@ -22,10 +22,11 @@ services:
       - "6881:6881/tcp"
       - "6881:6881/udp"
     environment:
-      TZ: "${TZ:-Europe/Berlin}"
-      VPN_SERVICE_PROVIDER: "${VPN_SERVICE_PROVIDER:-custom}"
-      VPN_TYPE: "${VPN_TYPE:-wireguard}"
-      # Provider-spezifische Werte bewusst nicht eintragen.
+      TZ: "Europe/Berlin"
+      # ANPASSEN: Provider, VPN-Typ und Zugangsdaten gemäß Gluetun-Doku setzen.
+      VPN_SERVICE_PROVIDER: "custom"
+      VPN_TYPE: "wireguard"
+      # ANPASSEN: Provider-spezifische Werte bewusst nicht vorausgefüllt.
       # Offizielle Anleitung: https://github.com/qdm12/gluetun/wiki
     healthcheck:
       test: ["CMD", "/gluetun-entrypoint", "healthcheck"]

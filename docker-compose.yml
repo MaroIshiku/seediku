@@ -7,22 +7,31 @@ services:
     ports:
       - "8509:8509"
     environment:
-      TZ: "${TZ:-Europe/Berlin}"
+      TZ: "Europe/Berlin"
       PORT: "8509"
-      ISHIKU_APP_URL: "${ISHIKU_APP_URL:-http://localhost:8509}"
-      ISHIKU_BASE_PATH: "${ISHIKU_BASE_PATH:-/}"
+      # ANPASSEN: Wenn Seediku hinter Reverse Proxy oder eigener Domain läuft.
+      ISHIKU_APP_URL: "http://localhost:8509"
+      ISHIKU_BASE_PATH: "/"
       ISHIKU_DATA_DIR: "/data"
-      ISHIKU_LOG_LEVEL: "${ISHIKU_LOG_LEVEL:-info}"
-      ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
+      ISHIKU_LOG_LEVEL: "info"
+      # ANPASSEN: Vor dem ersten Start durch ein langes zufälliges Setup-Secret ersetzen.
+      # Dieses Secret wird nur zum Erstellen des ersten Adminaccounts benutzt.
+      ISHIKU_SETUP_SECRET: "CHANGE-ME-seediku-first-run-setup-secret"
+      # Fallback per Datei, falls gewünscht:
+      # 1. secrets/setup_secret.txt anlegen.
+      # 2. Die Volume-Zeile weiter unten einkommentieren.
+      # 3. Diese Variable einkommentieren.
+      # ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
       QBITTORRENT_URL: "http://qbittorrent:8185"
-      QBITTORRENT_USERNAME: "${QBITTORRENT_USERNAME:-admin}"
-      QBITTORRENT_PASSWORD: "${QBITTORRENT_PASSWORD:-adminadmin}"
-      QBITTORRENT_WEBUI_URL: "${QBITTORRENT_WEBUI_URL:-http://localhost:8185}"
+      # ANPASSEN: Wenn du qBittorrent-Zugangsdaten änderst.
+      QBITTORRENT_USERNAME: "admin"
+      QBITTORRENT_PASSWORD: "adminadmin"
+      QBITTORRENT_WEBUI_URL: "http://localhost:8185"
     volumes:
       - ./data:/data
       - ./config:/config
-    secrets:
-      - ishiku_setup_secret
+      # Fallback per Datei, falls ISHIKU_SETUP_SECRET_FILE oben genutzt wird:
+      # - ./secrets/setup_secret.txt:/run/secrets/ishiku_setup_secret:ro
     depends_on:
       qbittorrent:
         condition: service_started
@@ -38,9 +47,10 @@ services:
     container_name: seediku-qbittorrent
     restart: unless-stopped
     environment:
-      PUID: "${PUID:-1000}"
-      PGID: "${PGID:-1000}"
-      TZ: "${TZ:-Europe/Berlin}"
+      # ANPASSEN: Falls Docker auf deinem Host andere User-/Gruppen-IDs braucht.
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Berlin"
       WEBUI_PORT: "8185"
       TORRENTING_PORT: "6881"
     volumes:
@@ -52,7 +62,3 @@ services:
       - "8185:8185"
       - "6881:6881/tcp"
       - "6881:6881/udp"
-
-secrets:
-  ishiku_setup_secret:
-    file: ./secrets/setup_secret.txt
