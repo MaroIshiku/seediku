@@ -1,0 +1,20 @@
+{
+  "name": "seediku",
+  "version": "0.1.0",
+  "description": "Seediku Torrentloader",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "check": "node --check src/server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.2"
+  }
+}

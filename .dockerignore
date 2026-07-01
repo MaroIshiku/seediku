@@ -1,0 +1,11 @@
+node_modules
+.env
+.git
+data
+config
+downloads
+secrets/*.txt
+!secrets/setup_secret.example.txt
+data-test
+*.log
+coverage

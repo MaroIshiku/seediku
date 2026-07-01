@@ -1,0 +1,18 @@
+{
+  "app_id": "seediku",
+  "app_name": "Seediku",
+  "app_subtitle": "Torrentloader",
+  "app_symbol": "download",
+  "app_logo": {
+    "src": "/assets/logos/seediku.png",
+    "favicon": "/assets/logos/seediku.png",
+    "alt": "",
+    "use_as_header_symbol": true,
+    "use_as_favicon": true,
+    "use_as_about_symbol": true,
+    "use_as_profile_sheet_symbol": true,
+    "use_as_empty_state_symbol": true
+  },
+  "default_theme": "lavender",
+  "default_mode": "system"
+}
