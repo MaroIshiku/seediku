@@ -74,6 +74,19 @@
   flex-wrap: wrap;
 }
 
+.seediku-main-view {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.seediku-add-button span {
+  display: block;
+  color: currentColor;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 500;
+}
+
 .seediku-download-list {
   display: grid;
   gap: var(--space-3);

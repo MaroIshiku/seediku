@@ -139,9 +139,10 @@ function renderLogin() {
   document.getElementById("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
+    const body = new URLSearchParams(new FormData(form));
     setFormBusy(form, true);
     try {
-      const result = await api("/api/login", { method: "POST", body: new URLSearchParams(new FormData(form)) });
+      const result = await api("/api/login", { method: "POST", body });
       state.user = result.user;
       toast("Willkommen zurück.");
       renderAppShell();
@@ -169,8 +170,8 @@ function renderAppShell() {
             <p class="psu-app-subtitle" data-psu-app-subtitle>Torrentloader</p>
           </div>
           <div class="psu-spacer"></div>
-          <button class="psu-icon-button" type="button" aria-label="Torrent hinzufügen" title="Torrent hinzufügen" data-open-add>
-            <svg><use href="#psu-icon-admin"></use></svg>
+          <button class="psu-icon-button seediku-add-button" type="button" aria-label="Torrent hinzufügen" title="Torrent hinzufügen" data-open-add>
+            <span aria-hidden="true">+</span>
           </button>
           <button class="psu-avatar-button" type="button" aria-label="Profilmenü öffnen" data-psu-open="#profile-sheet">${escapeHtml(state.user.initials || "S")}</button>
         </div>
@@ -183,7 +184,7 @@ function renderAppShell() {
           </div>
           <button class="psu-button psu-button--tonal" type="button" data-refresh>Aktualisieren</button>
         </section>
-        <div id="main-view"></div>
+        <div id="main-view" class="seediku-main-view"></div>
       </main>
     </div>
     ${profileSheet()}
@@ -428,9 +429,10 @@ function bindAddForm() {
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const body = new FormData(form);
     setFormBusy(form, true);
     try {
-      await api("/api/torrents/add", { method: "POST", body: new FormData(form) });
+      await api("/api/torrents/add", { method: "POST", body });
       closeSheet("#add-sheet");
       form.reset();
       labelNode.textContent = ".torrent-Datei hier ablegen oder auswählen";
