@@ -1,3 +1,5 @@
+name: seediku
+
 services:
   seediku:
     # Image: https://github.com/MaroIshiku/seediku/pkgs/container/seediku
@@ -30,8 +32,12 @@ services:
       QBITTORRENT_PASSWORD: "adminadmin"
       QBITTORRENT_WEBUI_URL: "http://localhost:8185"
     volumes:
-      - ./data:/data
-      - ./config:/config
+      - type: bind
+        source: /DATA/AppData/seediku/data
+        target: /data
+      - type: bind
+        source: /DATA/AppData/seediku/config
+        target: /config
       # Fallback per Datei, falls ISHIKU_SETUP_SECRET_FILE oben genutzt wird:
       # - ./secrets/setup_secret.txt:/run/secrets/ishiku_setup_secret:ro
     depends_on:
@@ -43,6 +49,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    labels:
+      icon: https://raw.githubusercontent.com/MaroIshiku/seediku/main/public/assets/logos/seediku.png
 
   qbittorrent:
     # Image: https://github.com/linuxserver/docker-qbittorrent/pkgs/container/qbittorrent
@@ -57,11 +65,33 @@ services:
       WEBUI_PORT: "8185"
       TORRENTING_PORT: "6881"
     volumes:
-      - ./config/qbittorrent:/config
-      - ./downloads/incomplete:/downloads/incomplete
-      - ./downloads/complete:/downloads/complete
-      - ./downloads/watch:/downloads/watch
+      - type: bind
+        source: /DATA/AppData/seediku/config/qbittorrent
+        target: /config
+      - type: bind
+        source: /DATA/Downloads/seediku/incomplete
+        target: /downloads/incomplete
+      - type: bind
+        source: /DATA/Downloads/seediku/complete
+        target: /downloads/complete
+      - type: bind
+        source: /DATA/Downloads/seediku/watch
+        target: /downloads/watch
     ports:
       - "8185:8185"
       - "6881:6881/tcp"
       - "6881:6881/udp"
+
+x-casaos:
+  author: self
+  category: self
+  hostname: ""
+  icon: https://raw.githubusercontent.com/MaroIshiku/seediku/main/public/assets/logos/seediku.png
+  index: /
+  is_uncontrolled: false
+  port_map: "8509"
+  scheme: http
+  store_app_id: seediku
+  title:
+    custom: Seediku
+    en_us: Seediku

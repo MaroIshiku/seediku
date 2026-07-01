@@ -6,6 +6,8 @@ RUN corepack enable && pnpm install --prod --frozen-lockfile
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+LABEL org.opencontainers.image.source="https://github.com/MaroIshiku/seediku"
+LABEL org.opencontainers.image.description="Seediku Torrentloader"
 COPY --from=deps /app/node_modules ./node_modules
 COPY app.manifest.json package.json ./
 COPY src ./src
