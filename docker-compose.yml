@@ -1,42 +1,6 @@
 name: seediku
 
 services:
-  qbittorrent-init:
-    image: busybox:1.36
-    container_name: seediku-qbittorrent-init
-    restart: "no"
-    command:
-      - /bin/sh
-      - -c
-      - |
-        set -eu
-        mkdir -p /config/qBittorrent
-        if [ ! -f /config/.seediku_qbittorrent_initialized ]; then
-          if [ -f /config/qBittorrent/qBittorrent.conf ]; then
-            awk '!/^(Accepted|WebUI\\(CSRFProtection|HostHeaderValidation|Password_PBKDF2|Port|Username))=/' /config/qBittorrent/qBittorrent.conf > /config/qBittorrent/qBittorrent.conf.tmp
-            mv /config/qBittorrent/qBittorrent.conf.tmp /config/qBittorrent/qBittorrent.conf
-          else
-            : > /config/qBittorrent/qBittorrent.conf
-          fi
-          cat >> /config/qBittorrent/qBittorrent.conf <<'EOF'
-
-        [LegalNotice]
-        Accepted=true
-
-        [Preferences]
-        WebUI\CSRFProtection=false
-        WebUI\HostHeaderValidation=false
-        WebUI\Password_PBKDF2="@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
-        WebUI\Port=8185
-        WebUI\Username=admin
-        EOF
-          touch /config/.seediku_qbittorrent_initialized
-        fi
-    volumes:
-      - type: bind
-        source: /DATA/AppData/seediku/config/qbittorrent
-        target: /config
-
   seediku:
     # Image: https://github.com/MaroIshiku/seediku/pkgs/container/seediku
     image: ghcr.io/maroishiku/seediku:latest
@@ -77,8 +41,7 @@ services:
       # Fallback per Datei, falls ISHIKU_SETUP_SECRET_FILE oben genutzt wird:
       # - ./secrets/setup_secret.txt:/run/secrets/ishiku_setup_secret:ro
     depends_on:
-      qbittorrent:
-        condition: service_started
+      - qbittorrent
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8509/healthz"]
       interval: 30s
@@ -93,9 +56,34 @@ services:
     image: ghcr.io/linuxserver/qbittorrent:4.6.7
     container_name: seediku-qbittorrent
     restart: unless-stopped
-    depends_on:
-      qbittorrent-init:
-        condition: service_completed_successfully
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mkdir -p /config/qBittorrent
+        if [ ! -f /config/.seediku_qbittorrent_initialized ]; then
+          if [ -f /config/qBittorrent/qBittorrent.conf ]; then
+            awk '!/^(Accepted|WebUI\\(CSRFProtection|HostHeaderValidation|Password_PBKDF2|Port|Username))=/' /config/qBittorrent/qBittorrent.conf > /config/qBittorrent/qBittorrent.conf.tmp
+            mv /config/qBittorrent/qBittorrent.conf.tmp /config/qBittorrent/qBittorrent.conf
+          else
+            : > /config/qBittorrent/qBittorrent.conf
+          fi
+          cat >> /config/qBittorrent/qBittorrent.conf <<'EOF'
+
+        [LegalNotice]
+        Accepted=true
+
+        [Preferences]
+        WebUI\CSRFProtection=false
+        WebUI\HostHeaderValidation=false
+        WebUI\Password_PBKDF2="@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
+        WebUI\Port=8185
+        WebUI\Username=admin
+        EOF
+          touch /config/.seediku_qbittorrent_initialized
+        fi
+        exec /init
     environment:
       # ANPASSEN: Falls Docker auf deinem Host andere User-/Gruppen-IDs braucht.
       PUID: "1000"
