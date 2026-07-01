@@ -11,7 +11,7 @@ export class QBittorrentClient {
 
   async ready() {
     try {
-      const version = await this.request("/api/v2/app/version", { auth: false, text: true, timeoutMs: 2500 });
+      const version = await this.request("/api/v2/app/version", { text: true, timeoutMs: 2500 });
       return { ok: true, version };
     } catch (error) {
       return { ok: false, error: error.message };

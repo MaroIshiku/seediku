@@ -208,10 +208,9 @@ function bindAppEvents() {
   document.querySelector("[data-open-add]")?.addEventListener("click", () => openSheet("#add-sheet"));
   document.querySelector("[data-logout]")?.addEventListener("click", logout);
   document.querySelector("[data-copy-debug]")?.addEventListener("click", copyDebug);
-  document.querySelector("[data-dismiss-vpn]")?.addEventListener("click", dismissVpnWarning);
   document.querySelectorAll("[data-theme-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityTheme(button.dataset.themeChoice)));
   document.querySelectorAll("[data-mode-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityMode(button.dataset.modeChoice)));
-  window.addEventListener("psu:themechange", syncThemeButtons, { once: true });
+  window.addEventListener("psu:themechange", syncThemeButtons);
   syncThemeButtons();
   bindAddForm();
 }
@@ -227,12 +226,6 @@ function dashboardView() {
   const stats = state.dashboard?.stats || {};
   const ip = state.dashboard?.ip || {};
   return `
-    ${state.vpnWarning ? `
-      <section class="psu-tonal-card seediku-alert">
-        <h2 class="psu-card-title">VPN-Schutz prüfen</h2>
-        <p class="psu-card-text">Seediku wurde neu gestartet. Prüfe bitte, ob dein gewünschter VPN-Schutz aktiv ist. Downloads werden dadurch nicht automatisch blockiert.</p>
-        <div class="psu-card-actions"><button class="psu-button psu-button--tonal" type="button" data-dismiss-vpn>Hinweis schließen</button></div>
-      </section>` : ""}
     <section class="seediku-stat-grid">
       ${statCard("Aktive Downloads", number(stats.activeDownloads), "aus qBittorrent")}
       ${statCard("Download", bytesPerSecond(stats.downloadSpeed), "aktuelle Geschwindigkeit")}
@@ -251,7 +244,12 @@ function dashboardView() {
         <h2 class="psu-card-title">Public IP</h2>
         <p class="seediku-stat__value">${ip.ok ? escapeHtml(ip.ip || "unbekannt") : "Nicht verfügbar"}</p>
         <p class="psu-card-text">${ip.ok ? escapeHtml([ip.city, ip.region, ip.country].filter(Boolean).join(", ") || "Standort unbekannt") : "Der externe IP-Dienst ist gerade nicht erreichbar."}</p>
-        <div class="psu-card-actions"><button class="psu-button psu-button--filled" type="button" data-open-add>Torrent hinzufügen</button></div>
+        ${state.vpnWarning ? `
+          <div class="seediku-inline-notice">
+            <h3>VPN-Schutz prüfen</h3>
+            <p>Seediku wurde neu gestartet. Prüfe bitte, ob dein gewünschter VPN-Schutz aktiv ist. Downloads werden dadurch nicht automatisch blockiert.</p>
+            <button class="psu-button psu-button--tonal" type="button" data-dismiss-vpn>Hinweis schließen</button>
+          </div>` : ""}
       </article>
     </section>`;
 }
@@ -288,34 +286,36 @@ function downloadsView() {
 function profileSheet() {
   return `
     <div class="psu-backdrop" id="profile-sheet" hidden>
-      <section class="psu-center-sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <section class="psu-center-sheet seediku-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title">
         <header class="psu-sheet-header">
           <button class="psu-icon-button" type="button" aria-label="Profilmenü schließen" data-psu-close><svg><use href="#psu-icon-close"></use></svg></button>
           <h2 class="psu-sheet-title" id="profile-title">Profil</h2>
           <span></span>
         </header>
-        <div class="psu-account-card">
-          <div class="psu-account-avatar">${escapeHtml(state.user.initials || "S")}</div>
-          <div><p class="psu-account-name">${escapeHtml(state.user.displayName || state.user.username)}</p><p class="psu-account-id">${escapeHtml(state.user.role)}</p></div>
-        </div>
-        <section class="psu-card">
-          <div style="display:flex; align-items:center; gap: var(--space-4);">
-            <div class="psu-logo-frame" aria-hidden="true"><img data-psu-app-logo src="/assets/logos/seediku.png" alt="" /><svg data-psu-fallback-symbol><use href="#psu-icon-download"></use></svg></div>
-            <div><h3 class="psu-card-title">Seediku</h3><p class="psu-card-text">Torrentloader</p></div>
+        <div class="seediku-profile-scroll">
+          <div class="psu-account-card">
+            <div class="psu-account-avatar">${escapeHtml(state.user.initials || "S")}</div>
+            <div><p class="psu-account-name">${escapeHtml(state.user.displayName || state.user.username)}</p><p class="psu-account-id">${escapeHtml(state.user.role)}</p></div>
           </div>
-        </section>
-        <section class="psu-tonal-card">
-          <h3 class="psu-card-title">Darstellung</h3>
-          <div class="psu-chip-group" role="group" aria-label="Theme wählen">
-            ${["lavender", "mint", "sky", "amber", "rose", "graphite"].map((theme) => `<button class="psu-chip" data-theme-choice="${theme}">${label(theme)}</button>`).join("")}
+          <section class="psu-card">
+            <div class="seediku-profile-app">
+              <div class="psu-logo-frame" aria-hidden="true"><img data-psu-app-logo src="/assets/logos/seediku.png" alt="" /><svg data-psu-fallback-symbol><use href="#psu-icon-download"></use></svg></div>
+              <div><h3 class="psu-card-title">Seediku</h3><p class="psu-card-text">Torrentloader</p></div>
+            </div>
+          </section>
+          <section class="psu-tonal-card">
+            <h3 class="psu-card-title">Darstellung</h3>
+            <div class="psu-chip-group" role="group" aria-label="Theme wählen">
+              ${["lavender", "mint", "sky", "amber", "rose", "graphite"].map((theme) => `<button class="psu-chip" data-theme-choice="${theme}">${label(theme)}</button>`).join("")}
+            </div>
+            <div class="psu-card-actions" role="group" aria-label="Modus wählen">
+              ${["system", "light", "dark"].map((mode) => `<button class="psu-chip" data-mode-choice="${mode}">${label(mode)}</button>`).join("")}
+            </div>
+          </section>
+          ${state.user.role === "admin" ? adminSection() : ""}
+          <div class="psu-card-actions seediku-profile-actions">
+            <button class="psu-button psu-button--outlined" type="button" data-logout>Logout</button>
           </div>
-          <div class="psu-card-actions" role="group" aria-label="Modus wählen">
-            ${["system", "light", "dark"].map((mode) => `<button class="psu-chip" data-mode-choice="${mode}">${label(mode)}</button>`).join("")}
-          </div>
-        </section>
-        ${state.user.role === "admin" ? adminSection() : ""}
-        <div class="psu-card-actions">
-          <button class="psu-button psu-button--outlined" type="button" data-logout>Logout</button>
         </div>
       </section>
     </div>`;
@@ -448,6 +448,7 @@ function bindAddForm() {
 
 function bindTorrentActions() {
   document.querySelectorAll("[data-open-add]").forEach((button) => button.addEventListener("click", () => openSheet("#add-sheet")));
+  document.querySelector("[data-dismiss-vpn]")?.addEventListener("click", dismissVpnWarning);
   document.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", async () => {
       const torrent = state.torrents.find((item) => item.hash === button.dataset.hash);

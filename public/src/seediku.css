@@ -89,6 +89,77 @@
   font-weight: 500;
 }
 
+.seediku-inline-notice {
+  margin-block-start: var(--space-4);
+  border-inline-start: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.seediku-inline-notice h3,
+.seediku-inline-notice p {
+  margin: 0;
+}
+
+.seediku-inline-notice h3 {
+  font-size: var(--type-title-medium-size);
+  line-height: var(--type-title-medium-line);
+  font-weight: 750;
+}
+
+.seediku-inline-notice p {
+  color: var(--color-on-surface-muted);
+  font-size: var(--type-body-medium-size);
+  line-height: var(--type-body-medium-line);
+}
+
+.seediku-inline-notice .psu-button {
+  justify-self: start;
+}
+
+.seediku-profile-sheet {
+  block-size: min(860px, calc(100dvh - var(--space-8)));
+  max-block-size: calc(100dvh - var(--space-8));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.seediku-profile-scroll {
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline: 2px var(--space-2);
+  padding-block-end: var(--space-5);
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.seediku-profile-scroll .psu-account-card {
+  margin-block: var(--space-4) 0;
+}
+
+.seediku-profile-app {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.seediku-profile-actions {
+  margin-block-start: 0;
+}
+
+.seediku-profile-sheet .psu-chip {
+  flex: 1 1 118px;
+  justify-content: center;
+}
+
 .seediku-download-list {
   inline-size: 100%;
   display: grid;
