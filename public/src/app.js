@@ -343,7 +343,7 @@ function adminSection() {
         ${tech("Setup-Status", admin.setupStatus)}
         ${tech("Health-Status", admin.healthStatus)}
         ${tech("Log-Level", admin.logLevel)}
-        ${tech("qBittorrent", admin.qbittorrent?.ok ? `ok ${admin.qbittorrent.version || ""}` : "nicht erreichbar")}
+        ${tech("qBittorrent", qbitStatusText(admin))}
       </div>
       <div class="psu-card-actions seediku-admin-actions">
         <button class="psu-button psu-button--tonal" type="button" data-copy-debug>Debug-Details kopieren</button>
@@ -608,6 +608,12 @@ function statCard(labelText, value, support) {
 
 function tech(labelText, value) {
   return `<div class="psu-technical-card"><strong>${escapeHtml(labelText)}</strong><div class="psu-technical-value">${escapeHtml(String(value ?? "nicht verfügbar"))}</div></div>`;
+}
+
+function qbitStatusText(admin) {
+  const status = admin.qbittorrent || {};
+  if (status.ok) return `ok ${status.version || ""}${status.url ? ` @ ${status.url}` : ""}`.trim();
+  return `nicht erreichbar${status.url ? ` @ ${status.url}` : ""}${status.error ? `: ${status.error}` : ""}`;
 }
 
 function setFormBusy(form, busy) {

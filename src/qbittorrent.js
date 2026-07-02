@@ -2,7 +2,8 @@ import { setTimeout as delay } from "node:timers/promises";
 
 export class QBittorrentClient {
   constructor(options = {}) {
-    this.baseUrl = String(options.baseUrl || "http://qbittorrent:8185").replace(/\/$/, "");
+    this.baseUrls = normalizeBaseUrls(options.baseUrl || "http://qbittorrent:8185");
+    this.activeBaseUrl = this.baseUrls[0] || "http://qbittorrent:8185";
     this.username = options.username || "admin";
     this.password = options.password || "adminadmin";
     this.cookie = "";
@@ -12,26 +13,42 @@ export class QBittorrentClient {
   async ready() {
     try {
       const version = await this.request("/api/v2/app/version", { text: true, timeoutMs: 2500 });
-      return { ok: true, version };
+      return { ok: true, version, url: this.activeBaseUrl };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return { ok: false, error: error.message, url: this.activeBaseUrl };
     }
   }
 
   async login(force = false) {
     if (!force && this.cookie && Date.now() - this.lastLoginAt < 15 * 60 * 1000) return;
     const body = new URLSearchParams({ username: this.username, password: this.password });
-    const response = await fetch(`${this.baseUrl}/api/v2/auth/login`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body
-    });
-    const text = await response.text();
-    if (!response.ok || !/^Ok\.?$/i.test(text.trim())) {
-      throw new Error(`qBittorrent Login fehlgeschlagen (${response.status})`);
+    const errors = [];
+    for (const baseUrl of orderedUrls(this.baseUrls, this.activeBaseUrl)) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      try {
+        const response = await fetch(`${baseUrl}/api/v2/auth/login`, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body,
+          signal: controller.signal
+        });
+        const text = await response.text();
+        if (!response.ok || !/^Ok\.?$/i.test(text.trim())) {
+          errors.push(`${baseUrl}: Login fehlgeschlagen (${response.status}, ${text.trim() || response.statusText})`);
+          continue;
+        }
+        this.activeBaseUrl = baseUrl;
+        this.cookie = response.headers.get("set-cookie")?.split(";")[0] || "";
+        this.lastLoginAt = Date.now();
+        return;
+      } catch (error) {
+        errors.push(`${baseUrl}: ${formatFetchError(error)}`);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
-    this.cookie = response.headers.get("set-cookie")?.split(";")[0] || "";
-    this.lastLoginAt = Date.now();
+    throw new Error(`qBittorrent nicht erreichbar (${errors.join("; ")})`);
   }
 
   async request(path, options = {}) {
@@ -49,7 +66,7 @@ export class QBittorrentClient {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(`${this.baseUrl}${path}`, {
+      const response = await fetch(`${this.activeBaseUrl}${path}`, {
         method,
         headers: {
           ...headers,
@@ -71,6 +88,15 @@ export class QBittorrentClient {
       if (text) return response.text();
       const payload = await response.text();
       return payload ? JSON.parse(payload) : {};
+    } catch (error) {
+      if (auth && retry) {
+        this.cookie = "";
+        this.lastLoginAt = 0;
+        await delay(100);
+        await this.login(true);
+        return this.request(path, { ...options, retry: false });
+      }
+      throw new Error(formatFetchError(error));
     } finally {
       clearTimeout(timeout);
     }
@@ -135,4 +161,27 @@ export class QBittorrentClient {
     const body = new URLSearchParams({ hashes: hash, deleteFiles: String(Boolean(deleteFiles)) });
     return this.request("/api/v2/torrents/delete", { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded" }, text: true });
   }
+}
+
+function normalizeBaseUrls(value) {
+  return String(value || "")
+    .split(",")
+    .map((url) => url.trim().replace(/\/$/, ""))
+    .filter(Boolean)
+    .filter((url, index, urls) => urls.indexOf(url) === index);
+}
+
+function orderedUrls(urls, activeUrl) {
+  const unique = urls.filter(Boolean);
+  return [activeUrl, ...unique].filter((url, index, all) => url && all.indexOf(url) === index);
+}
+
+function formatFetchError(error) {
+  if (error?.name === "AbortError") return "Timeout";
+  const cause = error?.cause;
+  const code = cause?.code || error?.code;
+  const syscall = cause?.syscall ? `${cause.syscall} ` : "";
+  const target = cause?.hostname || cause?.address || "";
+  if (code) return `${syscall}${code}${target ? ` ${target}` : ""}`.trim();
+  return error?.message || "fetch failed";
 }

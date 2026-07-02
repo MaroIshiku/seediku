@@ -26,11 +26,13 @@ services:
       # 2. Die Volume-Zeile weiter unten einkommentieren.
       # 3. Diese Variable einkommentieren.
       # ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
-      QBITTORRENT_URL: "http://qbittorrent:8185"
+      QBITTORRENT_URLS: "http://seediku-qbittorrent:8185,http://qbittorrent:8185,http://host.docker.internal:8185"
       # ANPASSEN: Wenn du qBittorrent-Zugangsdaten änderst.
       QBITTORRENT_USERNAME: "admin"
       QBITTORRENT_PASSWORD: "adminadmin"
-      QBITTORRENT_WEBUI_URL: "http://localhost:8185"
+      QBITTORRENT_WEBUI_URL: "http://192.168.1.110:8185"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - type: bind
         source: /DATA/AppData/seediku/data
@@ -50,6 +52,8 @@ services:
       start_period: 20s
     labels:
       icon: https://raw.githubusercontent.com/MaroIshiku/seediku/main/public/assets/logos/seediku.png
+    networks:
+      - seediku-net
 
   qbittorrent:
     # Image: https://github.com/linuxserver/docker-qbittorrent/pkgs/container/qbittorrent
@@ -108,6 +112,15 @@ services:
       - "8185:8185"
       - "6881:6881/tcp"
       - "6881:6881/udp"
+    networks:
+      seediku-net:
+        aliases:
+          - qbittorrent
+          - seediku-qbittorrent
+
+networks:
+  seediku-net:
+    name: seediku-net
 
 x-casaos:
   author: self

@@ -34,7 +34,7 @@ const env = {
   setupSecretFile: process.env.ISHIKU_SETUP_SECRET_FILE || "/run/secrets/ishiku_setup_secret",
   setupSecretFallback: process.env.ISHIKU_SETUP_SECRET || "",
   secureCookies: process.env.SEEDIKU_SECURE_COOKIES === "true",
-  qbUrl: process.env.QBITTORRENT_URL || "http://qbittorrent:8185",
+  qbUrl: process.env.QBITTORRENT_URLS || process.env.QBITTORRENT_URL || "http://qbittorrent:8185",
   qbUsername: process.env.QBITTORRENT_USERNAME || "admin",
   qbPassword: process.env.QBITTORRENT_PASSWORD || "adminadmin",
   qbWebUiUrl: process.env.QBITTORRENT_WEBUI_URL || "http://localhost:8185"
@@ -224,6 +224,7 @@ app.get("/api/admin", withAdmin, async (_req, res) => {
       healthStatus: "ok",
       logLevel: env.logLevel,
       qbittorrent: qbStatus,
+      qbittorrentUrl: qbStatus.url || env.qbUrl,
       qbittorrentWebUiUrl: env.qbWebUiUrl
     },
     logs: logs.slice(-120)
