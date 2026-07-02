@@ -9,7 +9,9 @@ services:
     container_name: seediku
     restart: unless-stopped
     ports:
-      - "8509:8509"
+      - target: 8509
+        published: "8509"
+        protocol: tcp
     environment:
       TZ: "Europe/Berlin"
       PORT: "8509"
@@ -41,7 +43,10 @@ services:
         source: /DATA/AppData/seediku/config
         target: /config
       # Fallback per Datei, falls ISHIKU_SETUP_SECRET_FILE oben genutzt wird:
-      # - ./secrets/setup_secret.txt:/run/secrets/ishiku_setup_secret:ro
+      # - type: bind
+      #   source: /DATA/AppData/seediku/secrets/setup_secret.txt
+      #   target: /run/secrets/ishiku_setup_secret
+      #   read_only: true
     depends_on:
       - qbittorrent
     healthcheck:
@@ -100,18 +105,24 @@ services:
         source: /DATA/AppData/seediku/config/qbittorrent
         target: /config
       - type: bind
-        source: /DATA/Downloads/seediku/incomplete
+        source: /DATA/AppData/seediku/downloads/incomplete
         target: /downloads/incomplete
       - type: bind
-        source: /DATA/Downloads/seediku/complete
+        source: /DATA/AppData/seediku/downloads/complete
         target: /downloads/complete
       - type: bind
-        source: /DATA/Downloads/seediku/watch
+        source: /DATA/AppData/seediku/downloads/watch
         target: /downloads/watch
     ports:
-      - "8185:8185"
-      - "6881:6881/tcp"
-      - "6881:6881/udp"
+      - target: 8185
+        published: "8185"
+        protocol: tcp
+      - target: 6881
+        published: "6881"
+        protocol: tcp
+      - target: 6881
+        published: "6881"
+        protocol: udp
     networks:
       seediku-net:
         aliases:

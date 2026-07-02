@@ -1,172 +1,177 @@
 # Seediku
 
-Torrentloader
+Torrent loader
 
-> Seediku ist eine selbst gehostete WebGUI für qBittorrent mit Pixel-Soft-Utility-Oberfläche und Docker-Compose-Setup.
+> Seediku is a self-hosted web GUI for qBittorrent with a Pixel Soft Utility interface and Docker Compose deployment.
 
-## Kurzbeschreibung
+## Summary
 
-Seediku ist eine self-hosted Torrentloader-Web-App aus der ishiku-Familie. Die App stellt eine eigene ruhige Weboberfläche bereit und spricht serverseitig mit der qBittorrent Web API. qBittorrent bleibt die stabile Torrent-Engine im Hintergrund.
+Seediku is a self-hosted torrent loader web app from the ishiku family. The app provides its own calm web interface and talks to the qBittorrent Web API server-side. qBittorrent remains the stable torrent engine in the background.
 
-## Teil der ishiku-Familie
+## Part of the ishiku Family
 
-Seediku verwendet die gemeinsame ishiku Oberfläche:
+Seediku uses the shared ishiku interface:
 
-- ruhige, abgerundete Pixel-Soft-Utility-Komponenten
-- sechs gemeinsame Themes: Lavender, Mint, Sky, Amber, Rose und Graphite
-- Light, Dark und System Mode
-- einheitlicher AppHeader, Profil-/Einstellungs-Sheets und About/Admin-Bereiche
-- einheitliches First-Run-Setup für den ersten Adminaccount
+- calm, rounded Pixel Soft Utility components
+- six shared themes: Lavender, Mint, Sky, Amber, Rose, and Graphite
+- Light, Dark, and System modes
+- consistent AppHeader, profile/settings sheets, and About/Admin areas
+- consistent first-run setup for the first admin account
 
-Die App soll sich bewusst wie Teil einer gemeinsamen Suite anfühlen, nicht wie eine separate Marke mit eigener Designsprache.
+The app is intentionally meant to feel like part of a shared suite, not like a separate brand with its own design language.
 
-## Funktionen
+## Features
 
-- First-Run-Setup mit Setup-Secret und erstem Adminaccount
-- Login per HttpOnly Session-Cookie
-- Magnet-Links, Torrent-URLs und `.torrent` Upload per Dropzone
-- Downloadliste mit Fortschritt, Status, Geschwindigkeit, ETA, Größe, Ratio und Fehlerstatus
-- Aktionen für Pausieren, Fortsetzen, Entfernen und Entfernen inklusive Daten nach Bestätigung
-- Dashboard mit aktiven Downloads, Geschwindigkeit, Ratio, Warnungen, Public IP und Standort
-- Admin-/Diagnosebereich mit Logs, Health-Status und qBittorrent-Verbindungsstatus
-- Docker Compose für Seediku und qBittorrent plus Gluetun-Beispiel
+- First-run setup with setup secret and first admin account
+- Login with HttpOnly session cookie
+- Magnet links, torrent URLs, and `.torrent` uploads through a drop zone
+- Download list with progress, status, speed, ETA, size, ratio, and error state
+- Pause, resume, remove, and remove-with-data actions after confirmation
+- Dashboard with active downloads, speed, ratio, warnings, public IP, and location
+- Admin/diagnostics area with logs, health status, and qBittorrent connection status
+- Docker Compose for Seediku and qBittorrent plus an optional Gluetun example
 
 ## Tech Stack
 
-- Frontend: Vanilla JavaScript mit Pixel Soft Utility Codex Pack v4
-- Backend: Node.js, Express
-- Datenhaltung: persistente JSON-Datei in `/data`
-- Torrent-Engine: qBittorrent Web API
+- Frontend: vanilla JavaScript with Pixel Soft Utility Codex Pack v4
+- Backend: Node.js and Express
+- Storage: persistent JSON file in `/data`
+- Torrent engine: qBittorrent Web API
 - Deployment: Docker / Docker Compose
 
 ## Installation
 
 ### Docker Compose
 
+Create the persistent host folders on ZimaOS or your Docker host:
+
 ```bash
-mkdir -p secrets data config downloads/incomplete downloads/complete downloads/watch
+mkdir -p /DATA/AppData/seediku/data
+mkdir -p /DATA/AppData/seediku/config/qbittorrent
+mkdir -p /DATA/AppData/seediku/downloads/incomplete
+mkdir -p /DATA/AppData/seediku/downloads/complete
+mkdir -p /DATA/AppData/seediku/downloads/watch
 ```
 
-Öffne anschließend `docker-compose.yml` und ersetze diesen Wert durch ein langes zufälliges Setup-Secret:
+Open `docker-compose.yml` and replace this value with a long random setup secret:
 
 ```yaml
 ISHIKU_SETUP_SECRET: "CHANGE-ME-seediku-first-run-setup-secret"
 ```
 
-Starte die App:
+Start the app:
 
 ```bash
 docker compose up -d --build
 ```
 
-Seediku ist danach unter `http://localhost:8509` erreichbar. Die optionale qBittorrent-WebUI ist unter `http://localhost:8185` erreichbar.
+Seediku is then available at `http://localhost:8509`. The optional qBittorrent Web UI is available at `http://localhost:8185`.
 
-Für die Gluetun-Variante:
+For the Gluetun variant:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gluetun.example.yml up -d --build
 ```
 
-Die offizielle Gluetun-Konfiguration liegt hier: https://github.com/qdm12/gluetun/wiki
+The official Gluetun configuration guide is available at <https://github.com/qdm12/gluetun/wiki>.
 
-### Erstes Starten
+### First Start
 
-Beim ersten Öffnen zeigt Seediku automatisch das Registrierungsfenster für den ersten Adminaccount an. Die Registrierung ist nur möglich, wenn das Setup-Secret korrekt eingegeben wird.
+On first open, Seediku automatically shows the registration window for the first admin account. Registration is only possible when the setup secret is entered correctly.
 
-### Adminaccount erstellen
+### Create the Admin Account
 
-Im Registrierungsfenster werden benötigt:
+The registration window requires:
 
-- Setup-Secret aus `ISHIKU_SETUP_SECRET` in `docker-compose.yml`
-- Admin-Benutzername
-- Anzeigename
-- Admin-Passwort
+- setup secret from `ISHIKU_SETUP_SECRET` in `docker-compose.yml`
+- admin username
+- display name
+- admin password
 
-Das Admin-Passwort darf nicht mit dem Setup-Secret übereinstimmen. Nach erfolgreicher Erstellung des ersten Adminaccounts wird die öffentliche Registrierung automatisch geschlossen.
+The admin password must not match the setup secret. After the first admin account is created successfully, public registration is closed automatically.
 
-## Konfiguration
+## Configuration
 
-### Umgebungsvariablen
+### Environment Variables
 
-| Variable | Beschreibung | Standard |
+| Variable | Description | Default |
 | --- | --- | --- |
-| `TZ` | Zeitzone für Logs und Anzeige | `Europe/Berlin` |
-| `ISHIKU_APP_URL` | Öffentliche URL der App | `http://localhost:8509` |
-| `ISHIKU_BASE_PATH` | Basis-Pfad hinter Reverse Proxy | `/` |
-| `ISHIKU_DATA_DIR` | Persistenter Datenpfad im Container | `/data` |
-| `ISHIKU_LOG_LEVEL` | Log-Level | `info` |
-| `ISHIKU_SETUP_SECRET` | Setup-Secret für die erste Admin-Erstellung; in `docker-compose.yml` direkt gesetzt und vor Nutzung anzupassen | `CHANGE-ME...` |
-| `ISHIKU_SETUP_SECRET_FILE` | Optionaler Datei-Fallback, wenn die entsprechende Volume-Zeile in Compose einkommentiert wird | `/run/secrets/ishiku_setup_secret` |
-| `QBITTORRENT_URL` | Serverinterne qBittorrent API URL | `http://qbittorrent:8185` |
-| `QBITTORRENT_USERNAME` | qBittorrent API Benutzer | `admin` |
-| `QBITTORRENT_PASSWORD` | qBittorrent API Passwort | `adminadmin` |
-| `QBITTORRENT_WEBUI_URL` | Link zur optionalen qBittorrent-WebUI | `http://localhost:8185` |
+| `TZ` | Time zone for logs and display | `Europe/Berlin` |
+| `ISHIKU_APP_URL` | Public app URL | `http://localhost:8509` |
+| `ISHIKU_BASE_PATH` | Base path behind a reverse proxy | `/` |
+| `ISHIKU_DATA_DIR` | Persistent data path in the container | `/data` |
+| `ISHIKU_LOG_LEVEL` | Log level | `info` |
+| `ISHIKU_SETUP_SECRET` | Setup secret for first admin creation; set directly in `docker-compose.yml` and must be changed before use | `CHANGE-ME...` |
+| `ISHIKU_SETUP_SECRET_FILE` | Optional file fallback when the matching Compose volume is enabled | `/run/secrets/ishiku_setup_secret` |
+| `QBITTORRENT_URLS` | Server-internal qBittorrent API URLs, checked in order | `http://seediku-qbittorrent:8185,...` |
+| `QBITTORRENT_USERNAME` | qBittorrent API username | `admin` |
+| `QBITTORRENT_PASSWORD` | qBittorrent API password | `adminadmin` |
+| `QBITTORRENT_WEBUI_URL` | Link to the optional qBittorrent Web UI | `http://localhost:8185` |
 
-### Setup-Secret
+### Setup Secret
 
-Der Standardweg ist bewusst direkt in `docker-compose.yml`, damit ZimaOS- und Compose-Nutzer ohne zusätzliche Secret-Datei starten können. Ersetze den `CHANGE-ME...`-Wert vor dem ersten Start.
+The default path is intentionally set directly in `docker-compose.yml` so ZimaOS and Compose users can start without an extra secret file. Replace the `CHANGE-ME...` value before the first start.
 
-Die Datei `secrets/setup_secret.txt` bleibt als Fallback vorhanden. Wenn du sie nutzen möchtest, lege sie an, kommentiere in `docker-compose.yml` die Volume-Zeile für `/run/secrets/ishiku_setup_secret` ein und aktiviere `ISHIKU_SETUP_SECRET_FILE`.
+The file `/DATA/AppData/seediku/secrets/setup_secret.txt` remains available as an optional fallback. If you want to use it, create the file, uncomment the bind mount for `/run/secrets/ishiku_setup_secret` in `docker-compose.yml`, and enable `ISHIKU_SETUP_SECRET_FILE`.
 
-### Persistente Daten
+### Persistent Data
 
-Persistente Daten liegen standardmäßig in:
+Persistent data is stored by default in:
 
-```txt
-data/
-config/
-downloads/
+```text
+/DATA/AppData/seediku/data/
+/DATA/AppData/seediku/config/
+/DATA/AppData/seediku/downloads/
   incomplete/
   complete/
   watch/
-secrets/
 ```
 
-Sichere diese Ordner regelmäßig, wenn die App produktiv genutzt wird.
+Back up these folders regularly when Seediku is used in production.
 
-## Sicherheit
+## Security
 
-- Das Setup-Secret dient nur zur ersten Admin-Registrierung.
-- Das Admin-Passwort darf nicht dem Setup-Secret entsprechen.
-- Passwörter werden nicht im Klartext gespeichert.
-- Die öffentliche Registrierung wird nach dem ersten Adminaccount geschlossen.
-- qBittorrent-Zugangsdaten werden nur serverseitig verwendet.
-- Destruktive Download-Aktionen verlangen eine Bestätigung.
-- Secrets, `.env`, Datenbanken, Logs und Downloads gehören nicht ins Repository.
-- Seediku erzwingt in Version 1 keinen VPN-Betrieb. Nach jedem Container-Neustart erscheint ein Hinweis, den gewünschten VPN-Schutz zu prüfen.
+- The setup secret is only used for the first admin registration.
+- The admin password must not match the setup secret.
+- Passwords are not stored as plaintext.
+- Public registration is closed after the first admin account.
+- qBittorrent credentials are used server-side only.
+- Destructive download actions require confirmation.
+- Secrets, `.env`, databases, logs, and downloads do not belong in the repository.
+- Seediku v1 does not enforce VPN operation. After each container restart, the app shows a reminder to check the intended VPN protection.
 
-## Updates und Backup
+## Updates and Backup
 
 ```bash
 docker compose pull
 docker compose up -d --build
 ```
 
-Vor Updates sollte der persistente Datenbestand gesichert werden:
+Back up the persistent data before updates:
 
 ```bash
-tar -czf backup-seediku-$(date +%Y%m%d).tar.gz data config downloads secrets
+tar -czf backup-seediku-$(date +%Y%m%d).tar.gz /DATA/AppData/seediku
 ```
 
-## Entwicklung
+## Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Für lokale Entwicklung und den normalen Compose-Betrieb kann `ISHIKU_SETUP_SECRET` direkt gesetzt werden. `secrets/setup_secret.txt` ist nur der optionale Datei-Fallback.
+For local development and normal Compose operation, `ISHIKU_SETUP_SECRET` can be set directly. `secrets/setup_secret.txt` is only the optional file fallback.
 
-Codex soll bei Änderungen das gemeinsame Pixel Soft Utility Designsystem beibehalten und keine app-spezifischen UI-Abweichungen einführen.
+When making changes, keep the shared Pixel Soft Utility design system intact and avoid app-specific UI deviations.
 
-## Erstellt mit ChatGPT Codex
+## Created with ChatGPT Codex
 
-Dieses Projekt wurde mit Unterstützung von ChatGPT Codex erstellt bzw. überarbeitet. Codex wurde verwendet, um Code, Struktur, UI-Komponenten und Dokumentation nach den Vorgaben der ishiku / Pixel Soft Utility Standards zu generieren.
+This project was created and revised with support from ChatGPT Codex. Codex was used to generate and refine code, structure, UI components, and documentation according to the ishiku / Pixel Soft Utility standards.
 
-Die Verantwortung für Betrieb, Prüfung, Sicherheit und Veröffentlichung liegt beim Repository-Betreiber.
+Responsibility for operation, review, security, and publication remains with the repository owner.
 
-## Status und Lizenz
+## Status and License
 
-Status: v1 Implementierung
+Status: v1 implementation
 
-Lizenz: Noch nicht festgelegt.
+License: not specified yet.

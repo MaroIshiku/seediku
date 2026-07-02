@@ -19,9 +19,15 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "8185:8185"
-      - "6881:6881/tcp"
-      - "6881:6881/udp"
+      - target: 8185
+        published: "8185"
+        protocol: tcp
+      - target: 6881
+        published: "6881"
+        protocol: tcp
+      - target: 6881
+        published: "6881"
+        protocol: udp
     environment:
       TZ: "Europe/Berlin"
       # ANPASSEN: Provider, VPN-Typ und Zugangsdaten gemäß Gluetun-Doku setzen.
@@ -38,3 +44,4 @@ services:
   qbittorrent:
     network_mode: "service:gluetun"
     ports: !reset []
+    networks: !reset []
