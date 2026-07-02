@@ -66,6 +66,11 @@
   border-inline-start: 4px solid var(--color-primary);
 }
 
+.seediku-public-ip-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .seediku-tabs {
   inline-size: 100%;
   display: flex;
@@ -89,35 +94,47 @@
   font-weight: 500;
 }
 
-.seediku-inline-notice {
-  margin-block-start: var(--space-4);
-  border-inline-start: 4px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-soft);
-  padding: var(--space-4);
-  display: grid;
-  gap: var(--space-3);
-}
-
-.seediku-inline-notice h3,
-.seediku-inline-notice p {
-  margin: 0;
-}
-
-.seediku-inline-notice h3 {
-  font-size: var(--type-title-medium-size);
-  line-height: var(--type-title-medium-line);
+.seediku-vpn-pill {
+  margin-block-start: auto;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-block-size: 36px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-outline));
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-label-large-size);
+  line-height: var(--type-label-large-line);
   font-weight: 750;
 }
 
-.seediku-inline-notice p {
-  color: var(--color-on-surface-muted);
-  font-size: var(--type-body-medium-size);
-  line-height: var(--type-body-medium-line);
+.seediku-vpn-pill span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
-.seediku-inline-notice .psu-button {
-  justify-self: start;
+.seediku-vpn-pill button {
+  inline-size: 28px;
+  block-size: 28px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-on-primary-container) 10%, transparent);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  line-height: 1;
+  padding: 0;
+}
+
+.seediku-vpn-pill button:active {
+  transform: scale(0.96);
 }
 
 .seediku-profile-sheet {

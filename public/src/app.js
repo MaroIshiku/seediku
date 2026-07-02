@@ -247,15 +247,14 @@ function dashboardView() {
           ${(stats.graph || [8, 12, 18, 22, 15, 9, 4]).map((value) => `<span class="seediku-bar" style="height:${Math.max(8, Number(value) || 8)}%"></span>`).join("")}
         </div>
       </article>
-      <article class="psu-card">
+      <article class="psu-card seediku-public-ip-card">
         <h2 class="psu-card-title">Public IP</h2>
         <p class="seediku-stat__value">${ip.ok ? escapeHtml(ip.ip || "unbekannt") : "Nicht verfügbar"}</p>
         <p class="psu-card-text">${ip.ok ? escapeHtml([ip.city, ip.region, ip.country].filter(Boolean).join(", ") || "Standort unbekannt") : "Der externe IP-Dienst ist gerade nicht erreichbar."}</p>
         ${state.vpnWarning ? `
-          <div class="seediku-inline-notice">
-            <h3>VPN-Schutz prüfen</h3>
-            <p>Seediku wurde neu gestartet. Prüfe bitte, ob dein gewünschter VPN-Schutz aktiv ist. Downloads werden dadurch nicht automatisch blockiert.</p>
-            <button class="psu-button psu-button--tonal" type="button" data-dismiss-vpn>Hinweis schließen</button>
+          <div class="seediku-vpn-pill" role="status">
+            <span>VPN-Schutz prüfen</span>
+            <button type="button" aria-label="VPN-Hinweis schließen" data-dismiss-vpn>×</button>
           </div>` : ""}
       </article>
     </section>`;
