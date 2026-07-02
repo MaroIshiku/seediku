@@ -2,7 +2,7 @@ name: seediku
 
 services:
   seediku:
-    # Image: https://github.com/MaroIshiku/seediku/pkgs/container/seediku
+    # Image: https://github.com/users/MaroIshiku/packages/container/package/seediku
     image: ghcr.io/maroishiku/seediku:latest
     # Für lokale Entwicklung statt GHCR:
     # build: .
