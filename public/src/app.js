@@ -280,10 +280,10 @@ function downloadsView() {
             <p class="seediku-download-meta">Down ${bytesPerSecond(torrent.dlspeed)} · Up ${bytesPerSecond(torrent.upspeed)}${torrent.error ? ` · Fehler ${escapeHtml(torrent.error)}` : ""}</p>
           </div>
           <div class="seediku-row-actions">
-            <button class="psu-icon-button" type="button" title="Pausieren" aria-label="Pausieren" data-action="pause" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-close"></use></svg></button>
-            <button class="psu-icon-button" type="button" title="Fortsetzen" aria-label="Fortsetzen" data-action="resume" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-download"></use></svg></button>
+            <button class="psu-icon-button" type="button" title="Pausieren" aria-label="Pausieren" data-action="pause" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-pause"></use></svg></button>
+            <button class="psu-icon-button" type="button" title="Fortsetzen" aria-label="Fortsetzen" data-action="resume" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-play"></use></svg></button>
             <button class="psu-icon-button" type="button" title="Details" aria-label="Details" data-action="details" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-info"></use></svg></button>
-            <button class="psu-icon-button" type="button" title="Entfernen" aria-label="Entfernen" data-action="remove" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-logout"></use></svg></button>
+            <button class="psu-icon-button" type="button" title="Entfernen" aria-label="Entfernen" data-action="remove" data-hash="${escapeAttr(torrent.hash)}"><svg><use href="#psu-icon-delete"></use></svg></button>
           </div>
         </article>`).join("")}
     </section>`;
