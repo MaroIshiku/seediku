@@ -295,7 +295,7 @@ function profileSheet() {
       <section class="psu-center-sheet seediku-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title">
         <header class="psu-sheet-header">
           <button class="psu-icon-button" type="button" aria-label="Profilmenü schließen" data-psu-close><svg><use href="#psu-icon-close"></use></svg></button>
-          <h2 class="psu-sheet-title" id="profile-title">Profil</h2>
+          <h2 class="psu-sheet-title" id="profile-title">Profile</h2>
           <span></span>
         </header>
         <div class="seediku-profile-scroll">
@@ -303,12 +303,6 @@ function profileSheet() {
             <div class="psu-account-avatar">${escapeHtml(state.user.initials || "S")}</div>
             <div><p class="psu-account-name">${escapeHtml(state.user.displayName || state.user.username)}</p><p class="psu-account-id">${escapeHtml(state.user.role)}</p></div>
           </div>
-          <section class="psu-card">
-            <div class="seediku-profile-app">
-              <div class="psu-logo-frame" aria-hidden="true"><img data-psu-app-logo src="/assets/logos/seediku.png" alt="" /><svg data-psu-fallback-symbol><use href="#psu-icon-download"></use></svg></div>
-              <div><h3 class="psu-card-title">Seediku</h3><p class="psu-card-text">Torrentloader</p></div>
-            </div>
-          </section>
           <section class="psu-tonal-card">
             <h3 class="psu-card-title">Darstellung</h3>
             <div class="psu-chip-group" role="group" aria-label="Theme wählen">
@@ -319,8 +313,8 @@ function profileSheet() {
             </div>
           </section>
           ${state.user.role === "admin" ? adminSection() : ""}
-          <div class="psu-card-actions seediku-profile-actions">
-            <button class="psu-button psu-button--outlined" type="button" data-logout>Logout</button>
+          <div class="psu-list seediku-profile-actions">
+            <button class="psu-list-row" type="button" data-logout><svg class="psu-list-row__icon"><use href="#psu-icon-logout"></use></svg><span class="psu-list-row__label">Sign out</span><span></span></button>
           </div>
         </div>
       </section>
