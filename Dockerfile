@@ -1,9 +1,9 @@
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable && pnpm install --prod --frozen-lockfile
 
-FROM node:22-alpine
+FROM node:26-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 LABEL org.opencontainers.image.source="https://github.com/MaroIshiku/seediku"
