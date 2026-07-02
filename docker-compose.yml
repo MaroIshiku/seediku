@@ -70,7 +70,7 @@ services:
       - -c
       - |
         set -eu
-        mkdir -p /config/qBittorrent
+        mkdir -p /config/qBittorrent /downloads/incomplete /downloads/complete /downloads/watch
         if [ ! -f /config/.seediku_qbittorrent_initialized ]; then
           if [ -f /config/qBittorrent/qBittorrent.conf ]; then
             awk '!/^(Accepted|WebUI\\(CSRFProtection|HostHeaderValidation|Password_PBKDF2|Port|Username))=/' /config/qBittorrent/qBittorrent.conf > /config/qBittorrent/qBittorrent.conf.tmp
@@ -92,6 +92,7 @@ services:
         EOF
           touch /config/.seediku_qbittorrent_initialized
         fi
+        chown -R "${PUID:-1000}:${PGID:-1000}" /config /downloads 2>/dev/null || true
         exec /init
     environment:
       # ANPASSEN: Falls Docker auf deinem Host andere User-/Gruppen-IDs braucht.

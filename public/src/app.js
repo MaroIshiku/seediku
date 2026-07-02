@@ -171,7 +171,7 @@ function renderAppShell() {
           </div>
           <div class="psu-spacer"></div>
           <button class="psu-icon-button seediku-add-button" type="button" aria-label="Torrent hinzufügen" title="Torrent hinzufügen" data-open-add>
-            <span aria-hidden="true">+</span>
+            <svg aria-hidden="true"><use href="#psu-icon-plus"></use></svg>
           </button>
           <button class="psu-avatar-button" type="button" aria-label="Profilmenü öffnen" data-psu-open="#profile-sheet">${escapeHtml(state.user.initials || "S")}</button>
         </div>

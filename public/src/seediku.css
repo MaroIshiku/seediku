@@ -86,14 +86,6 @@
   gap: var(--space-4);
 }
 
-.seediku-add-button span {
-  display: block;
-  color: currentColor;
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 500;
-}
-
 .seediku-vpn-pill {
   margin-block-start: auto;
   inline-size: fit-content;
