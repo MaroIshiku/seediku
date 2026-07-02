@@ -43,7 +43,7 @@ async function bootstrap() {
     return;
   }
   renderAppShell();
-  await refreshAll();
+  await refreshAll({ silent: true });
   startRefresh();
 }
 
@@ -69,7 +69,7 @@ function renderSetup() {
         state.setupRequired = false;
         toast("Adminaccount erstellt.");
         renderAppShell();
-        await refreshAll();
+        await refreshAll({ silent: true });
         startRefresh();
       } catch (error) {
         renderFormErrors(formElement, error.payload?.errors || {}, error.message);
@@ -146,7 +146,7 @@ function renderLogin() {
       state.user = result.user;
       toast("Willkommen zurück.");
       renderAppShell();
-      await refreshAll();
+      await refreshAll({ silent: true });
       startRefresh();
     } catch (error) {
       renderFormErrors(form, {}, error.message);
@@ -444,7 +444,7 @@ function bindAddForm() {
       form.reset();
       labelNode.textContent = ".torrent-Datei hier ablegen oder auswählen";
       toast("Torrent wurde übergeben.");
-      await refreshAll();
+      await refreshAll({ silent: true });
     } catch (error) {
       renderFormErrors(form, {}, error.message);
     } finally {
@@ -500,7 +500,8 @@ function confirmRemove(torrent) {
   };
 }
 
-async function refreshAll() {
+async function refreshAll(options = {}) {
+  const { silent = false } = options;
   if (!state.user) return;
   const [torrentPayload, dashboardPayload, adminPayload] = await Promise.allSettled([
     api("/api/torrents"),
@@ -511,7 +512,7 @@ async function refreshAll() {
     state.torrents = torrentPayload.value.torrents || [];
     state.transfer = torrentPayload.value.transfer || {};
   } else {
-    toast(torrentPayload.reason.message);
+    if (!silent) toast(torrentPayload.reason.message);
   }
   if (dashboardPayload.status === "fulfilled") state.dashboard = dashboardPayload.value;
   if (adminPayload.status === "fulfilled") {
@@ -544,7 +545,7 @@ function renderProfileSheet() {
 
 function startRefresh() {
   stopRefresh();
-  state.refreshTimer = setInterval(refreshAll, 5000);
+  state.refreshTimer = setInterval(() => refreshAll({ silent: true }), 5000);
 }
 
 function stopRefresh() {
@@ -573,7 +574,12 @@ async function copyDebug() {
 
 async function api(url, options = {}) {
   const { allowError = false, ...fetchOptions } = options;
-  const response = await fetch(url, { ...fetchOptions, credentials: "same-origin" });
+  let response;
+  try {
+    response = await fetch(url, { ...fetchOptions, credentials: "same-origin" });
+  } catch (error) {
+    throw new Error(normalizeNetworkError(error));
+  }
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};
   if (!response.ok && !allowError) {
@@ -582,6 +588,13 @@ async function api(url, options = {}) {
     throw error;
   }
   return payload;
+}
+
+function normalizeNetworkError(error) {
+  if (/networkerror|failed to fetch|load failed|fetch resource/i.test(error?.message || "")) {
+    return "Seediku ist gerade nicht erreichbar. Bitte prüfe, ob der Container noch läuft und die Seite neu geladen werden muss.";
+  }
+  return error?.message || "Netzwerkfehler.";
 }
 
 function setupBrand(title, subtitle) {
