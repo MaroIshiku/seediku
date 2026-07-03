@@ -125,13 +125,13 @@ function renderLogin() {
   appRoot.innerHTML = `
     <main class="psu-setup-screen">
       <section class="psu-auth-window" role="dialog" aria-modal="true" aria-labelledby="login-title">
-        ${setupBrand("Anmelden", "Melde dich mit deinem lokalen Seediku-Account an.")}
+        ${setupBrand("Seediku", "Torrentloader")}
         <form id="login-form" class="psu-form-stack">
-          ${field("username", "Benutzername", "text", "", "username")}
-          ${field("password", "Passwort", "password", "", "current-password")}
+          ${field("username", "Username", "text", "", "username")}
+          ${field("password", "Password", "password", "", "current-password")}
           <p class="psu-field-error" data-form-error hidden></p>
           <div class="psu-setup-actions">
-            <button class="psu-button psu-button--filled psu-button--full" type="submit">Einloggen</button>
+            <button class="psu-button psu-button--filled psu-button--full" type="submit">Sign in</button>
           </div>
         </form>
       </section>
@@ -144,7 +144,7 @@ function renderLogin() {
     try {
       const result = await api("/api/login", { method: "POST", body });
       state.user = result.user;
-      toast("Willkommen zurück.");
+      toast("Welcome back.");
       renderAppShell();
       await refreshAll({ silent: true });
       startRefresh();
