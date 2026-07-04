@@ -169,6 +169,90 @@
   justify-content: center;
 }
 
+.account-panel-button {
+  inline-size: 100%;
+  border: 0;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.account-panel-chevron {
+  inline-size: 22px;
+  block-size: 22px;
+  align-self: center;
+  color: var(--color-on-surface-muted);
+}
+
+.account-edit-view,
+.menu-accordion {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.account-back-button {
+  justify-self: start;
+}
+
+.account-back-button svg,
+.profile-signout-button svg,
+.sheet-accordion-trigger svg {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+.sheet-accordion {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.sheet-accordion-trigger {
+  inline-size: 100%;
+  min-block-size: 54px;
+  border: 0;
+  background: transparent;
+  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font: inherit;
+  font-weight: 800;
+  text-align: start;
+}
+
+.sheet-accordion-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.sheet-accordion-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.profile-signout-button {
+  min-block-size: 52px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: 800;
+}
+
+.compact-form {
+  gap: var(--space-3);
+}
+
 .seediku-download-list {
   inline-size: 100%;
   display: grid;
@@ -258,7 +342,7 @@
   gap: var(--space-2);
 }
 
-.seediku-toast-host {
+.psu-toast-host {
   position: fixed;
   inset-inline: var(--space-4);
   inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom));
@@ -269,7 +353,7 @@
   pointer-events: none;
 }
 
-.seediku-toast {
+.psu-toast {
   inline-size: min(100%, 520px);
   border-radius: var(--radius-pill);
   background: var(--color-inverse-surface);

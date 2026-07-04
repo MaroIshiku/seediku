@@ -3,7 +3,7 @@ import { bindRegisterWindow } from "../design-system/setup-flow.js";
 import { setPixelSoftUtilityMode, setPixelSoftUtilityTheme } from "../design-system/theme-controller.js";
 
 const appRoot = document.getElementById("app");
-const toastHost = document.getElementById("toast-host");
+const toastHost = document.getElementById("psu-toast-host");
 
 const state = {
   manifest: null,
@@ -216,10 +216,117 @@ function bindAppEvents() {
 function bindProfileEvents() {
   const profile = document.getElementById("profile-sheet");
   if (!profile) return;
+  hydrateProfileMenu(profile);
   profile.querySelector("[data-logout]")?.addEventListener("click", logout);
   profile.querySelector("[data-copy-debug]")?.addEventListener("click", copyDebug);
+  profile.querySelector("[data-account-open]")?.addEventListener("click", () => toggleAccountEditor(true));
+  profile.querySelector("[data-account-back]")?.addEventListener("click", () => toggleAccountEditor(false));
+  profile.querySelector("#account-form")?.addEventListener("submit", saveAccount);
+  profile.querySelectorAll("[data-menu-trigger]").forEach((button) => {
+    button.addEventListener("click", () => setMenuSection(button.dataset.menuTrigger, button.getAttribute("aria-expanded") !== "true"));
+  });
   profile.querySelectorAll("[data-theme-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityTheme(button.dataset.themeChoice)));
   profile.querySelectorAll("[data-mode-choice]").forEach((button) => button.addEventListener("click", () => setPixelSoftUtilityMode(button.dataset.modeChoice)));
+  setMenuSection("appearance", true);
+}
+
+function hydrateProfileMenu(profile) {
+  const scroll = profile.querySelector(".seediku-profile-scroll");
+  if (!scroll) return;
+  scroll.innerHTML = `
+    <button class="psu-account-card account-panel-button" type="button" data-account-open aria-label="Account bearbeiten">
+      <div class="psu-account-avatar">${escapeHtml(state.user.initials || "S")}</div>
+      <div><p class="psu-account-name">${escapeHtml(state.user.displayName || state.user.username)}</p><p class="psu-account-id">${escapeHtml(state.user.role)}</p></div>
+      <svg class="account-panel-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </button>
+    <section class="account-edit-view" data-account-editor hidden>
+      <button class="psu-button psu-button--text account-back-button" type="button" data-account-back>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        Account
+      </button>
+      <form id="account-form" class="psu-form-stack compact-form">
+        ${field("displayName", "Anzeigename", "text", "", "name", true, state.user.displayName || state.user.username)}
+        ${field("username", "Username", "text", "", "username", true, state.user.username)}
+        ${field("email", "E-Mail optional", "email", "", "email", false, state.user.email || "")}
+        ${field("currentPassword", "Aktuelles Passwort", "password", "", "current-password", false)}
+        ${field("newPassword", "Neues Passwort", "password", "", "new-password", false)}
+        ${field("passwordConfirm", "Neues Passwort wiederholen", "password", "", "new-password", false)}
+        <p class="psu-field-error" data-form-error hidden></p>
+        <button class="psu-button psu-button--filled psu-button--full" type="submit">Account speichern</button>
+      </form>
+    </section>
+    <div class="menu-accordion" data-menu-accordion>
+      ${profileAccordionSection("appearance", "Darstellung", appearancePanel(), true)}
+      ${state.user.role === "admin" ? profileAccordionSection("admin", "Admin & Diagnose", adminSection(), false) : ""}
+      ${profileAccordionSection("about", "About", aboutPanel(), false)}
+      <button class="profile-signout-button" type="button" data-logout><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><span>Sign out</span></button>
+    </div>`;
+}
+
+function profileAccordionSection(id, title, body, open = false) {
+  return `
+    <section class="sheet-section sheet-accordion" data-menu-section="${escapeAttr(id)}" data-open="${open}">
+      <button class="sheet-accordion-trigger" type="button" aria-expanded="${open}" data-menu-trigger="${escapeAttr(id)}">
+        <span>${escapeHtml(title)}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+      <div class="sheet-accordion-panel" data-menu-panel="${escapeAttr(id)}" ${open ? "" : "hidden"}>${body}</div>
+    </section>`;
+}
+
+function appearancePanel() {
+  return `
+    <div class="psu-chip-group theme-grid" data-theme-picker role="group" aria-label="Theme waehlen">
+      ${["lavender", "mint", "sky", "amber", "rose", "graphite"].map((theme) => `<button class="psu-chip" type="button" data-theme-choice="${theme}">${label(theme)}</button>`).join("")}
+    </div>
+    <div class="psu-card-actions" data-mode-picker role="group" aria-label="Modus waehlen">
+      ${["system", "light", "dark"].map((mode) => `<button class="psu-chip" type="button" data-mode-choice="${mode}">${label(mode)}</button>`).join("")}
+    </div>`;
+}
+
+function aboutPanel() {
+  const admin = state.admin?.app || {};
+  return `
+    <div class="seediku-detail-grid">
+      ${tech("App", "Seediku")}
+      ${tech("Version", admin.version || "0.1.0")}
+      ${tech("Build", admin.buildDate || "local")}
+      ${tech("Health", admin.healthStatus || "ok")}
+    </div>`;
+}
+
+function setMenuSection(id, open) {
+  document.querySelectorAll("#profile-sheet [data-menu-section]").forEach((section) => {
+    const isOpen = open && section.dataset.menuSection === id;
+    section.dataset.open = String(isOpen);
+    section.querySelector("[data-menu-trigger]")?.setAttribute("aria-expanded", String(isOpen));
+    const panel = section.querySelector("[data-menu-panel]");
+    if (panel) panel.hidden = !isOpen;
+  });
+}
+
+function toggleAccountEditor(open) {
+  const profile = document.getElementById("profile-sheet");
+  profile?.querySelector("[data-account-editor]")?.toggleAttribute("hidden", !open);
+  profile?.querySelector("[data-menu-accordion]")?.toggleAttribute("hidden", open);
+  profile?.querySelector("[data-account-open]")?.toggleAttribute("hidden", open);
+}
+
+async function saveAccount(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const body = Object.fromEntries(new FormData(form).entries());
+  setFormBusy(form, true);
+  try {
+    const result = await api("/api/account", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+    state.user = result.user;
+    toast("Account gespeichert.");
+    renderProfileSheet();
+  } catch (error) {
+    renderFormErrors(form, error.payload?.errors || {}, error.message);
+  } finally {
+    setFormBusy(form, false);
+  }
 }
 
 function renderMainView() {
@@ -305,10 +412,10 @@ function profileSheet() {
           </div>
           <section class="psu-tonal-card">
             <h3 class="psu-card-title">Darstellung</h3>
-            <div class="psu-chip-group" role="group" aria-label="Theme wählen">
+            <div class="psu-chip-group" data-theme-picker role="group" aria-label="Theme wählen">
               ${["lavender", "mint", "sky", "amber", "rose", "graphite"].map((theme) => `<button class="psu-chip" data-theme-choice="${theme}">${label(theme)}</button>`).join("")}
             </div>
-            <div class="psu-card-actions" role="group" aria-label="Modus wählen">
+            <div class="psu-card-actions" data-mode-picker role="group" aria-label="Modus wählen">
               ${["system", "light", "dark"].map((mode) => `<button class="psu-chip" data-mode-choice="${mode}">${label(mode)}</button>`).join("")}
             </div>
           </section>
@@ -665,7 +772,7 @@ function syncThemeButtons() {
 
 function toast(message) {
   const node = document.createElement("div");
-  node.className = "seediku-toast";
+  node.className = "psu-toast";
   node.textContent = message;
   toastHost.append(node);
   setTimeout(() => node.remove(), 3200);

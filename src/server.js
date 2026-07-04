@@ -138,6 +138,42 @@ app.post("/api/logout", withUser, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.put("/api/account", withUser, async (req, res, next) => {
+  try {
+    const username = String(req.body.username || "").trim();
+    const displayName = String(req.body.displayName || "").trim();
+    const email = String(req.body.email || "").trim();
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    const passwordConfirm = String(req.body.passwordConfirm || "");
+    const errors = {};
+
+    if (!displayName) errors.displayName = "Anzeigename ist erforderlich.";
+    if (!/^[a-zA-Z0-9._-]{3,48}$/.test(username)) {
+      errors.username = "Nutze 3 bis 48 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.";
+    }
+    const existing = store.findUserByUsername(username);
+    if (existing && existing.id !== req.user.id) errors.username = "Dieser Benutzername existiert bereits.";
+    if (email.length > 180) errors.email = "E-Mail ist zu lang.";
+
+    const wantsPassword = Boolean(newPassword || passwordConfirm);
+    if (wantsPassword) {
+      if (!currentPassword) errors.currentPassword = "Aktuelles Passwort ist erforderlich.";
+      if (!(await verifyPassword(currentPassword, req.user.passwordHash))) errors.currentPassword = "Aktuelles Passwort ist nicht korrekt.";
+      if (newPassword.length < 12) errors.newPassword = "Das neue Passwort muss mindestens 12 Zeichen lang sein.";
+      if (newPassword !== passwordConfirm) errors.passwordConfirm = "Die Passwörter stimmen nicht überein.";
+    }
+    if (Object.keys(errors).length) return res.status(400).json({ error: "Accountdaten sind ungültig.", errors });
+
+    const patch = { username, displayName, email };
+    if (wantsPassword) patch.passwordHash = await hashPassword(newPassword);
+    const user = await store.updateUser(req.user.id, patch);
+    res.json({ ok: true, user: publicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/vpn-warning/dismiss", withUser, async (req, res) => {
   await store.dismissVpnWarning(req.user.id, bootId);
   res.json({ ok: true });

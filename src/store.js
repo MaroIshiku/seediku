@@ -81,6 +81,14 @@ export class JsonStore {
     return this.state.users.find((user) => user.id === id) || null;
   }
 
+  async updateUser(userId, patch) {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    Object.assign(user, patch, { updatedAt: new Date().toISOString() });
+    await this.save();
+    return user;
+  }
+
   async createSession(userId, tokenHash, expiresAt) {
     this.state.sessions = this.state.sessions.filter((session) => new Date(session.expiresAt) > new Date());
     this.state.sessions.push({
