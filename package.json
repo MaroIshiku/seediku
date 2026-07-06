@@ -14,7 +14,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^5.2.1",
     "multer": "^2.0.2"
   }
 }
