@@ -94,20 +94,25 @@
     {
       "id": "VPN-001",
       "implementation": [
-        "src/",
+        "src/public-ip.js",
+        "src/server.js",
+        "public/src/app.js",
         "docker-compose.gluetun.example.yml"
       ],
       "tests": {
-        "unit": [],
+        "unit": [
+          "test/public-ip.test.js"
+        ],
         "integration": [
           ".ishiku/kit/scripts/compliance-test"
         ],
         "e2e": [],
         "security": [
+          "test/public-ip.test.js",
           ".ishiku/kit/scripts/compliance-test"
         ]
       },
-      "status": "implemented"
+      "status": "verified"
     }
   ]
 }

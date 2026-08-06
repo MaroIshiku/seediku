@@ -4,9 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import crypto from "node:crypto";
-import { isIP } from "node:net";
 import { JsonStore } from "./store.js";
 import { QBittorrentClient } from "./qbittorrent.js";
+import { publicIpInfo } from "./public-ip.js";
 import {
   clearSessionCookie,
   hashPassword,
@@ -239,7 +239,7 @@ app.get("/api/dashboard", withUser, async (_req, res, next) => {
   try {
     const [torrentPayload, ipPayload, qbStatus] = await Promise.allSettled([
       Promise.all([qb.torrents(), qb.transferInfo()]),
-      publicIpInfo(),
+      publicIpInfo(env),
       qb.ready()
     ]);
     const [torrents, transfer] = torrentPayload.status === "fulfilled" ? torrentPayload.value : [[], {}];
@@ -429,55 +429,6 @@ function average(values) {
   const clean = values.filter((value) => Number.isFinite(value));
   if (!clean.length) return 0;
   return clean.reduce((sum, value) => sum + value, 0) / clean.length;
-}
-
-async function publicIpInfo() {
-  let direct;
-  const errors = [];
-  for (const endpoint of env.publicIpEndpoints) {
-    try {
-      direct = await fetchIp(endpoint, false);
-      break;
-    } catch (error) {
-      errors.push(error.message);
-    }
-  }
-  let vpn;
-  if (env.vpnIpUrl) vpn = await fetchIp(env.vpnIpUrl, true).catch((error) => ({ error: error.message }));
-  const vpnIp = vpn?.ip || "";
-  const directIp = direct?.ip || "";
-  const vpnActive = Boolean(vpnIp) && (env.expectedVpnIps.length ? env.expectedVpnIps.includes(vpnIp) : Boolean(directIp && vpnIp !== directIp));
-  return {
-    ok: Boolean(directIp || vpnIp),
-    ip: vpnIp || directIp,
-    directIp,
-    vpnIp,
-    vpnConfigured: Boolean(env.vpnIpUrl),
-    vpnActive,
-    provider: vpnIp ? env.vpnIpUrl : direct?.provider || "",
-    disclosure: "Public IP checks contact the configured external service and may disclose the requesting address.",
-    error: directIp || vpnIp ? "" : errors.join("; ") || vpn?.error || "Public IP services are unavailable."
-  };
-}
-
-async function fetchIp(value, allowInternalHttp) {
-  const url = new URL(value);
-  const internalHost = ["gluetun", "localhost", "127.0.0.1", "::1"].includes(url.hostname);
-  if (url.protocol !== "https:" && !(allowInternalHttp && url.protocol === "http:" && internalHost)) throw new Error("Rejected non-HTTPS public IP endpoint.");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-  try {
-    const response = await fetch(url, { signal: controller.signal, headers: { "user-agent": "Seediku/0.1" } });
-    if (!response.ok) throw new Error(`Public IP service returned ${response.status}.`);
-    const text = await response.text();
-    let payload = {};
-    try { payload = JSON.parse(text); } catch { payload = { ip: text.trim() }; }
-    const ip = String(payload.ip || payload.public_ip || payload.query || "").trim();
-    if (!isIP(ip)) throw new Error("Public IP service returned an invalid address.");
-    return { ip, provider: url.origin };
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 function sendIndex(_req, res) {

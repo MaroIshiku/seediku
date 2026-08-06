@@ -90,7 +90,7 @@
   margin-block-start: auto;
   inline-size: fit-content;
   max-inline-size: 100%;
-  min-block-size: 36px;
+  min-block-size: var(--touch-target-min);
   border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-outline));
   border-radius: var(--radius-pill);
   background: var(--color-primary-container);
@@ -110,8 +110,8 @@
 }
 
 .seediku-vpn-pill button {
-  inline-size: 28px;
-  block-size: 28px;
+  inline-size: var(--touch-target-min);
+  block-size: var(--touch-target-min);
   flex: 0 0 auto;
   border: 0;
   border-radius: var(--radius-pill);

@@ -98,13 +98,13 @@ function setupLayout() {
   return `
     <main class="psu-setup-screen">
       <section class="psu-register-window" role="dialog" aria-modal="true" aria-labelledby="setup-title">
-        ${setupBrand("Create administrator", "Create the first administrator account for this ishiku app.")}
+        ${setupBrand("Set up admin", "Create the first administrator account for Seediku.")}
         <form id="setup-form" class="psu-form-stack" novalidate>
           ${field("setup_secret", "Setup secret", "password", "Read this value from the configured Docker secret.", "one-time-code")}
           ${field("admin_display_name", "Display name", "text", "", "name")}
-          ${field("admin_username", "Administrator username", "text", "", "username")}
+          ${field("admin_username", "Admin username", "text", "", "username")}
           ${field("admin_email", "Email (optional)", "email", "", "email", false)}
-          ${field("admin_password", "Administrator password", "password", "", "new-password")}
+          ${field("admin_password", "Admin password", "password", "", "new-password")}
           ${field("admin_password_confirm", "Repeat password", "password", "", "new-password")}
           <div class="psu-password-requirements">
             Use at least 12 characters and choose a value different from the setup secret, app name, and username.
@@ -112,7 +112,7 @@ function setupLayout() {
           <p class="psu-field-error" data-form-error hidden></p>
           <div class="psu-setup-actions">
             <button class="psu-button psu-button--tonal" type="button" data-help>Show setup help</button>
-            <button class="psu-button psu-button--filled" type="submit">Create administrator account</button>
+            <button class="psu-button psu-button--filled" type="submit">Create admin account</button>
           </div>
           <p class="psu-setup-footnote">Registration closes permanently after the administrator account is created.</p>
         </form>
