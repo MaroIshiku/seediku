@@ -83,7 +83,7 @@ On first open, Seediku automatically shows the registration window for the first
 
 The registration window requires:
 
-- setup secret from `ISHIKU_SETUP_SECRET` in `docker-compose.yml`
+- setup secret from `secrets/setup_secret.txt`
 - admin username
 - display name
 - admin password
@@ -101,30 +101,30 @@ The admin password must not match the setup secret. After the first admin accoun
 | `ISHIKU_BASE_PATH` | Base path behind a reverse proxy | `/` |
 | `ISHIKU_DATA_DIR` | Persistent data path in the container | `/data` |
 | `ISHIKU_LOG_LEVEL` | Log level | `info` |
-| `ISHIKU_SETUP_SECRET` | Setup secret for first admin creation; set directly in `docker-compose.yml` and must be changed before use | `CHANGE-ME...` |
-| `ISHIKU_SETUP_SECRET_FILE` | Optional file fallback when the matching Compose volume is enabled | `/run/secrets/ishiku_setup_secret` |
+| `ISHIKU_SETUP_SECRET_FILE` | File containing the one-time setup secret | `/run/secrets/ishiku_setup_secret` |
 | `QBITTORRENT_URLS` | Server-internal qBittorrent API URLs, checked in order | `http://seediku-qbittorrent:8185,...` |
 | `QBITTORRENT_USERNAME` | qBittorrent API username | `admin` |
-| `QBITTORRENT_PASSWORD` | qBittorrent API password | `adminadmin` |
+| `QBITTORRENT_PASSWORD_FILE` | File containing the current qBittorrent Web UI password | `/run/secrets/qbittorrent_password` |
 | `QBITTORRENT_WEBUI_URL` | Link to the optional qBittorrent Web UI | `http://localhost:8185` |
+| `SEEDIKU_PUBLIC_IP_ENDPOINTS` | Comma-separated HTTPS endpoints used to observe direct egress; the request discloses the requesting IP | `https://api.ipify.org?format=json` |
+| `SEEDIKU_VPN_IP_URL` | Trusted Gluetun control URL used to observe torrent/VPN egress | unset; the Gluetun overlay sets it |
+| `SEEDIKU_EXPECTED_VPN_IPS` | Optional allowlist used to confirm an expected VPN exit | unset |
 
 ### Setup Secret
 
-The default path is intentionally set directly in `docker-compose.yml` so ZimaOS and Compose users can start without an extra secret file. Replace the `CHANGE-ME...` value before the first start.
-
-The file `/DATA/AppData/seediku/secrets/setup_secret.txt` remains available as an optional fallback. If you want to use it, create the file, uncomment the bind mount for `/run/secrets/ishiku_setup_secret` in `docker-compose.yml`, and enable `ISHIKU_SETUP_SECRET_FILE`.
+Copy both example files in `secrets/` to their names without `.example`, then replace the contents with unique values. On a fresh qBittorrent installation, read its generated temporary Web UI password from the qBittorrent container log, change it in qBittorrent, and store the same value in `secrets/qbittorrent_password.txt`. The real files are ignored by Git and mounted as Compose secrets.
 
 ### Persistent Data
 
-Persistent data is stored by default in:
+Persistent data is stored in named Compose volumes by default:
 
 ```text
-/DATA/AppData/seediku/data/
-/DATA/AppData/seediku/config/
-/DATA/AppData/seediku/downloads/
-  incomplete/
-  complete/
-  watch/
+seediku-data
+seediku-config
+qbittorrent-config
+downloads-incomplete
+downloads-complete
+downloads-watch
 ```
 
 Back up these folders regularly when Seediku is used in production.
@@ -138,7 +138,8 @@ Back up these folders regularly when Seediku is used in production.
 - qBittorrent credentials are used server-side only.
 - Destructive download actions require confirmation.
 - Secrets, `.env`, databases, logs, and downloads do not belong in the repository.
-- Seediku v1 does not enforce VPN operation. After each container restart, the app shows a reminder to check the intended VPN protection.
+- Direct public-IP lookup is explicit and configurable; it sends the source address to the configured HTTPS service.
+- With the Gluetun overlay, Seediku also reads Gluetun's `/v1/publicip/ip` endpoint and compares VPN egress with direct egress. The result is evidence for the torrent network namespace, not a substitute for a firewall/kill-switch test.
 
 ## Updates and Backup
 
@@ -150,7 +151,7 @@ docker compose up -d --build
 Back up the persistent data before updates:
 
 ```bash
-tar -czf backup-seediku-$(date +%Y%m%d).tar.gz /DATA/AppData/seediku
+docker run --rm -v seediku_seediku-data:/source:ro -v "$PWD":/backup alpine tar -czf /backup/seediku-data.tgz -C /source .
 ```
 
 ## Development
@@ -160,7 +161,7 @@ npm install
 npm run dev
 ```
 
-For local development and normal Compose operation, `ISHIKU_SETUP_SECRET` can be set directly. `secrets/setup_secret.txt` is only the optional file fallback.
+For local development, point `ISHIKU_SETUP_SECRET_FILE` and `QBITTORRENT_PASSWORD_FILE` at private files. Do not place secrets in environment examples or source files.
 
 When making changes, keep the shared Pixel Soft Utility design system intact and avoid app-specific UI deviations.
 

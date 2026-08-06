@@ -5,7 +5,7 @@ export class QBittorrentClient {
     this.baseUrls = normalizeBaseUrls(options.baseUrl || "http://qbittorrent:8185");
     this.activeBaseUrl = this.baseUrls[0] || "http://qbittorrent:8185";
     this.username = options.username || "admin";
-    this.password = options.password || "adminadmin";
+    this.password = options.password || "";
     this.cookie = "";
     this.lastLoginAt = 0;
   }
@@ -35,7 +35,7 @@ export class QBittorrentClient {
         });
         const text = await response.text();
         if (!response.ok || !/^Ok\.?$/i.test(text.trim())) {
-          errors.push(`${baseUrl}: Login fehlgeschlagen (${response.status}, ${text.trim() || response.statusText})`);
+          errors.push(`${baseUrl}: sign-in failed (${response.status}, ${text.trim() || response.statusText})`);
           continue;
         }
         this.activeBaseUrl = baseUrl;
@@ -48,7 +48,7 @@ export class QBittorrentClient {
         clearTimeout(timeout);
       }
     }
-    throw new Error(`qBittorrent nicht erreichbar (${errors.join("; ")})`);
+    throw new Error(`qBittorrent is unavailable (${errors.join("; ")})`);
   }
 
   async request(path, options = {}) {

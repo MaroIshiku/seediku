@@ -1,8 +1,10 @@
 services:
   seediku:
     environment:
-      QBITTORRENT_URL: "http://gluetun:8185"
+      QBITTORRENT_URLS: "http://gluetun:8185"
       QBITTORRENT_WEBUI_URL: "http://localhost:8185"
+      # Gluetun reports the torrent namespace's VPN egress address.
+      SEEDIKU_VPN_IP_URL: "http://gluetun:8000/v1/publicip/ip"
     depends_on:
       gluetun:
         condition: service_healthy
@@ -10,8 +12,7 @@ services:
         condition: service_started
 
   gluetun:
-    # Image: https://github.com/qdm12/gluetun/pkgs/container/gluetun
-    image: ghcr.io/qdm12/gluetun:latest
+    image: ghcr.io/qdm12/gluetun:v3.41.1
     container_name: seediku-gluetun
     restart: unless-stopped
     cap_add:
@@ -20,7 +21,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     ports:
       - target: 8185
-        published: "8185"
+        published: "127.0.0.1:8185"
         protocol: tcp
       - target: 6881
         published: "6881"
@@ -30,16 +31,16 @@ services:
         protocol: udp
     environment:
       TZ: "Europe/Berlin"
-      # ANPASSEN: Provider, VPN-Typ und Zugangsdaten gemäß Gluetun-Doku setzen.
       VPN_SERVICE_PROVIDER: "custom"
       VPN_TYPE: "wireguard"
-      # ANPASSEN: Provider-spezifische Werte bewusst nicht vorausgefüllt.
-      # Offizielle Anleitung: https://github.com/qdm12/gluetun/wiki
+      # Supply provider-specific settings and credentials through runtime secrets.
     healthcheck:
       test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - seediku-net
 
   qbittorrent:
     network_mode: "service:gluetun"

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import crypto from "node:crypto";
+import { isIP } from "node:net";
 import { JsonStore } from "./store.js";
 import { QBittorrentClient } from "./qbittorrent.js";
 import {
@@ -36,15 +37,21 @@ const env = {
   secureCookies: process.env.SEEDIKU_SECURE_COOKIES === "true",
   qbUrl: process.env.QBITTORRENT_URLS || process.env.QBITTORRENT_URL || "http://qbittorrent:8185",
   qbUsername: process.env.QBITTORRENT_USERNAME || "admin",
-  qbPassword: process.env.QBITTORRENT_PASSWORD || "adminadmin",
-  qbWebUiUrl: process.env.QBITTORRENT_WEBUI_URL || "http://localhost:8185"
+  qbPasswordFile: process.env.QBITTORRENT_PASSWORD_FILE || "/run/secrets/qbittorrent_password",
+  qbPasswordFallback: process.env.QBITTORRENT_PASSWORD || "",
+  qbWebUiUrl: process.env.QBITTORRENT_WEBUI_URL || "http://localhost:8185",
+  publicIpEndpoints: String(process.env.SEEDIKU_PUBLIC_IP_ENDPOINTS || "https://api.ipify.org?format=json").split(",").map((value) => value.trim()).filter(Boolean),
+  vpnIpUrl: process.env.SEEDIKU_VPN_IP_URL || "",
+  expectedVpnIps: String(process.env.SEEDIKU_EXPECTED_VPN_IPS || "").split(",").map((value) => value.trim()).filter(Boolean)
 };
 
 const bootId = crypto.randomUUID();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
 const app = express();
 const store = await new JsonStore(env.dataDir).init();
-const qb = new QBittorrentClient({ baseUrl: env.qbUrl, username: env.qbUsername, password: env.qbPassword });
+const qbPassword = await readRuntimeSecret(env.qbPasswordFile, env.qbPasswordFallback);
+if (!qbPassword) throw new Error("QBITTORRENT_PASSWORD_FILE must contain a qBittorrent password.");
+const qb = new QBittorrentClient({ baseUrl: env.qbUrl, username: env.qbUsername, password: qbPassword });
 const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
 const logs = [];
 const setupAttempts = new Map();
@@ -84,9 +91,9 @@ app.get("/api/bootstrap", withOptionalUser, async (req, res) => {
 
 app.post("/api/setup", setupRateLimit, async (req, res, next) => {
   try {
-    if (!store.setupRequired()) return res.status(409).json({ error: "Setup ist bereits abgeschlossen." });
+    if (!store.setupRequired()) return res.status(409).json({ error: "Setup is already complete." });
     const setupSecretStatus = await getSetupSecretStatus();
-    if (!setupSecretStatus.ok) return res.status(503).json({ error: `Setup ist nicht konfiguriert: ${setupSecretStatus.key}` });
+    if (!setupSecretStatus.ok) return res.status(503).json({ error: `Setup is not configured: ${setupSecretStatus.key}` });
 
     const validation = validateAdminSetup({
       setupSecret: req.body.setup_secret,
@@ -101,7 +108,7 @@ app.post("/api/setup", setupRateLimit, async (req, res, next) => {
       return res.status(400).json({ errors: validation.errors });
     }
     if (store.findUserByUsername(req.body.admin_username)) {
-      return res.status(409).json({ errors: { admin_username: "Dieser Benutzername existiert bereits." } });
+      return res.status(409).json({ errors: { admin_username: "This username already exists." } });
     }
 
     const admin = await store.createFirstAdmin({
@@ -120,10 +127,10 @@ app.post("/api/setup", setupRateLimit, async (req, res, next) => {
 
 app.post("/api/login", async (req, res, next) => {
   try {
-    if (store.setupRequired()) return res.status(403).json({ error: "Setup muss zuerst abgeschlossen werden." });
+    if (store.setupRequired()) return res.status(403).json({ error: "Complete setup before signing in." });
     const user = store.findUserByUsername(req.body.username);
     if (!user || !(await verifyPassword(String(req.body.password || ""), user.passwordHash))) {
-      return res.status(401).json({ error: "Benutzername oder Passwort ist nicht korrekt." });
+      return res.status(401).json({ error: "Invalid username or password." });
     }
     await createSessionForUser(res, user);
     res.json({ ok: true, user: publicUser(user) });
@@ -148,22 +155,22 @@ app.put("/api/account", withUser, async (req, res, next) => {
     const passwordConfirm = String(req.body.passwordConfirm || "");
     const errors = {};
 
-    if (!displayName) errors.displayName = "Anzeigename ist erforderlich.";
+    if (!displayName) errors.displayName = "Display name is required.";
     if (!/^[a-zA-Z0-9._-]{3,48}$/.test(username)) {
-      errors.username = "Nutze 3 bis 48 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.";
+      errors.username = "Use 3 to 48 letters, numbers, dots, underscores, or hyphens.";
     }
     const existing = store.findUserByUsername(username);
-    if (existing && existing.id !== req.user.id) errors.username = "Dieser Benutzername existiert bereits.";
-    if (email.length > 180) errors.email = "E-Mail ist zu lang.";
+    if (existing && existing.id !== req.user.id) errors.username = "This username already exists.";
+    if (email.length > 180) errors.email = "The email address is too long.";
 
     const wantsPassword = Boolean(newPassword || passwordConfirm);
     if (wantsPassword) {
-      if (!currentPassword) errors.currentPassword = "Aktuelles Passwort ist erforderlich.";
-      if (!(await verifyPassword(currentPassword, req.user.passwordHash))) errors.currentPassword = "Aktuelles Passwort ist nicht korrekt.";
-      if (newPassword.length < 12) errors.newPassword = "Das neue Passwort muss mindestens 12 Zeichen lang sein.";
-      if (newPassword !== passwordConfirm) errors.passwordConfirm = "Die Passwörter stimmen nicht überein.";
+      if (!currentPassword) errors.currentPassword = "Current password is required.";
+      if (!(await verifyPassword(currentPassword, req.user.passwordHash))) errors.currentPassword = "The current password is incorrect.";
+      if (newPassword.length < 12) errors.newPassword = "The new password must contain at least 12 characters.";
+      if (newPassword !== passwordConfirm) errors.passwordConfirm = "The passwords do not match.";
     }
-    if (Object.keys(errors).length) return res.status(400).json({ error: "Accountdaten sind ungültig.", errors });
+    if (Object.keys(errors).length) return res.status(400).json({ error: "Account details are invalid.", errors });
 
     const patch = { username, displayName, email };
     if (wantsPassword) patch.passwordHash = await hashPassword(newPassword);
@@ -191,7 +198,7 @@ app.get("/api/torrents", withUser, async (_req, res, next) => {
 app.post("/api/torrents/add", withUser, upload.single("torrent_file"), async (req, res, next) => {
   try {
     const value = String(req.body.torrent_value || "").trim();
-    if (!value && !req.file) return res.status(400).json({ error: "Magnet-Link, Torrent-URL oder .torrent-Datei ist erforderlich." });
+    if (!value && !req.file) return res.status(400).json({ error: "Provide a magnet link, torrent URL, or .torrent file." });
     await qb.add({ urls: value, file: req.file });
     log("info", "Torrent submitted", { user: req.user.username, mode: req.file ? "file" : "url" });
     res.status(202).json({ ok: true });
@@ -238,8 +245,8 @@ app.get("/api/dashboard", withUser, async (_req, res, next) => {
     const [torrents, transfer] = torrentPayload.status === "fulfilled" ? torrentPayload.value : [[], {}];
     res.json({
       stats: dashboardStats(torrents, transfer),
-      ip: ipPayload.status === "fulfilled" ? ipPayload.value : { ok: false, error: ipPayload.reason?.message || "Nicht erreichbar" },
-      qbittorrent: qbStatus.status === "fulfilled" ? qbStatus.value : { ok: false, error: "Nicht erreichbar" }
+      ip: ipPayload.status === "fulfilled" ? ipPayload.value : { ok: false, error: ipPayload.reason?.message || "Unavailable" },
+      qbittorrent: qbStatus.status === "fulfilled" ? qbStatus.value : { ok: false, error: "Unavailable" }
     });
   } catch (error) {
     next(error);
@@ -276,7 +283,7 @@ app.get("*", (req, res, next) => {
 app.use((error, _req, res, _next) => {
   const status = error.status || 500;
   log(status >= 500 ? "error" : "warn", error.message, { status });
-  res.status(status).json({ error: status >= 500 ? "Seediku konnte die Anfrage nicht abschließen." : error.message });
+  res.status(status).json({ error: status >= 500 ? "Seediku could not complete the request." : error.message });
 });
 
 app.listen(env.port, () => {
@@ -296,6 +303,18 @@ async function getSetupSecretStatus() {
   }
   if (env.setupSecretFallback.trim()) return { ok: true, value: env.setupSecretFallback.trim(), source: "ISHIKU_SETUP_SECRET" };
   return { ok: false, key: "ISHIKU_SETUP_SECRET" };
+}
+
+async function readRuntimeSecret(file, fallback = "") {
+  if (file) {
+    try {
+      const value = (await fs.readFile(file, "utf8")).trim();
+      if (value) return value;
+    } catch (error) {
+      if (error.code !== "ENOENT" || process.env.QBITTORRENT_PASSWORD_FILE) throw error;
+    }
+  }
+  return String(fallback).trim();
 }
 
 async function createSessionForUser(res, user) {
@@ -320,14 +339,14 @@ function withOptionalUser(req, _res, next) {
 
 function withUser(req, res, next) {
   withOptionalUser(req, res, () => {
-    if (!req.user) return res.status(401).json({ error: "Login erforderlich." });
+    if (!req.user) return res.status(401).json({ error: "Sign-in is required." });
     return next();
   });
 }
 
 function withAdmin(req, res, next) {
   withUser(req, res, () => {
-    if (req.user.role !== "admin") return res.status(403).json({ error: "Adminrechte erforderlich." });
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Administrator access is required." });
     return next();
   });
 }
@@ -357,7 +376,7 @@ function setupRateLimit(req, res, next) {
   const key = req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const state = setupAttempts.get(key) || { count: 0, until: 0 };
-  if (state.until > now) return res.status(429).json({ error: "Zu viele Setup-Versuche. Bitte kurz warten." });
+  if (state.until > now) return res.status(429).json({ error: "Too many setup attempts. Try again later." });
   req.setupAttemptKey = key;
   next();
 }
@@ -413,19 +432,49 @@ function average(values) {
 }
 
 async function publicIpInfo() {
+  let direct;
+  const errors = [];
+  for (const endpoint of env.publicIpEndpoints) {
+    try {
+      direct = await fetchIp(endpoint, false);
+      break;
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+  let vpn;
+  if (env.vpnIpUrl) vpn = await fetchIp(env.vpnIpUrl, true).catch((error) => ({ error: error.message }));
+  const vpnIp = vpn?.ip || "";
+  const directIp = direct?.ip || "";
+  const vpnActive = Boolean(vpnIp) && (env.expectedVpnIps.length ? env.expectedVpnIps.includes(vpnIp) : Boolean(directIp && vpnIp !== directIp));
+  return {
+    ok: Boolean(directIp || vpnIp),
+    ip: vpnIp || directIp,
+    directIp,
+    vpnIp,
+    vpnConfigured: Boolean(env.vpnIpUrl),
+    vpnActive,
+    provider: vpnIp ? env.vpnIpUrl : direct?.provider || "",
+    disclosure: "Public IP checks contact the configured external service and may disclose the requesting address.",
+    error: directIp || vpnIp ? "" : errors.join("; ") || vpn?.error || "Public IP services are unavailable."
+  };
+}
+
+async function fetchIp(value, allowInternalHttp) {
+  const url = new URL(value);
+  const internalHost = ["gluetun", "localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  if (url.protocol !== "https:" && !(allowInternalHttp && url.protocol === "http:" && internalHost)) throw new Error("Rejected non-HTTPS public IP endpoint.");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
-    const response = await fetch("https://ipapi.co/json/", { signal: controller.signal, headers: { "user-agent": "Seediku/0.1" } });
-    if (!response.ok) throw new Error(`IP-Dienst ${response.status}`);
-    const payload = await response.json();
-    return {
-      ok: true,
-      ip: payload.ip || "",
-      city: payload.city || "",
-      region: payload.region || "",
-      country: payload.country_name || payload.country || ""
-    };
+    const response = await fetch(url, { signal: controller.signal, headers: { "user-agent": "Seediku/0.1" } });
+    if (!response.ok) throw new Error(`Public IP service returned ${response.status}.`);
+    const text = await response.text();
+    let payload = {};
+    try { payload = JSON.parse(text); } catch { payload = { ip: text.trim() }; }
+    const ip = String(payload.ip || payload.public_ip || payload.query || "").trim();
+    if (!isIP(ip)) throw new Error("Public IP service returned an invalid address.");
+    return { ip, provider: url.origin };
   } finally {
     clearTimeout(timeout);
   }

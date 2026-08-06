@@ -2,12 +2,25 @@ name: seediku
 
 services:
   seediku:
-    # Image: https://github.com/users/MaroIshiku/packages/container/package/seediku
-    image: ghcr.io/maroishiku/seediku:latest
-    # Für lokale Entwicklung statt GHCR:
-    # build: .
+    image: ${SEEDIKU_IMAGE:-ghcr.io/maroishiku/seediku:0.1.0}
+    # Use `build: .` for local development.
     container_name: seediku
     restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 768m
+    cpus: "1.0"
     ports:
       - target: 8509
         published: "8509"
@@ -15,40 +28,29 @@ services:
     environment:
       TZ: "Europe/Berlin"
       PORT: "8509"
-      # ANPASSEN: Wenn Seediku hinter Reverse Proxy oder eigener Domain läuft.
       ISHIKU_APP_URL: "http://localhost:8509"
       ISHIKU_BASE_PATH: "/"
       ISHIKU_DATA_DIR: "/data"
       ISHIKU_LOG_LEVEL: "info"
-      # ANPASSEN: Vor dem ersten Start durch ein langes zufälliges Setup-Secret ersetzen.
-      # Dieses Secret wird nur zum Erstellen des ersten Adminaccounts benutzt.
-      ISHIKU_SETUP_SECRET: "CHANGE-ME-seediku-first-run-setup-secret"
-      # Fallback per Datei, falls gewünscht:
-      # 1. secrets/setup_secret.txt anlegen.
-      # 2. Die Volume-Zeile weiter unten einkommentieren.
-      # 3. Diese Variable einkommentieren.
-      # ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
-      QBITTORRENT_URLS: "http://seediku-qbittorrent:8185,http://qbittorrent:8185,http://host.docker.internal:8185"
-      # ANPASSEN: Wenn du qBittorrent-Zugangsdaten änderst.
+      SEEDIKU_UID: "10001"
+      SEEDIKU_GID: "10001"
+      ISHIKU_SETUP_SECRET_FILE: "/run/secrets/ishiku_setup_secret"
+      QBITTORRENT_URLS: "http://seediku-qbittorrent:8185,http://qbittorrent:8185"
       QBITTORRENT_USERNAME: "admin"
-      QBITTORRENT_PASSWORD: "adminadmin"
-      QBITTORRENT_WEBUI_URL: "http://192.168.1.110:8185"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      QBITTORRENT_PASSWORD_FILE: "/run/secrets/qbittorrent_password"
+      QBITTORRENT_WEBUI_URL: "http://localhost:8185"
+      # The configured service observes Seediku's direct public egress IP.
+      # This request discloses the requesting address to that service.
+      SEEDIKU_PUBLIC_IP_ENDPOINTS: "https://api.ipify.org?format=json"
+    secrets:
+      - ishiku_setup_secret
+      - qbittorrent_password
     volumes:
-      - type: bind
-        source: /DATA/AppData/seediku/data
-        target: /data
-      - type: bind
-        source: /DATA/AppData/seediku/config
-        target: /config
-      # Fallback per Datei, falls ISHIKU_SETUP_SECRET_FILE oben genutzt wird:
-      # - type: bind
-      #   source: /DATA/AppData/seediku/secrets/setup_secret.txt
-      #   target: /run/secrets/ishiku_setup_secret
-      #   read_only: true
+      - seediku-data:/data
+      - seediku-config:/config
     depends_on:
-      - qbittorrent
+      qbittorrent:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8509/healthz"]
       interval: 30s
@@ -61,62 +63,23 @@ services:
       - seediku-net
 
   qbittorrent:
-    # Image: https://github.com/linuxserver/docker-qbittorrent/pkgs/container/qbittorrent
-    image: ghcr.io/linuxserver/qbittorrent:4.6.7
+    image: ghcr.io/linuxserver/qbittorrent:5.2.0_v2.0.12-ls454
     container_name: seediku-qbittorrent
     restart: unless-stopped
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -eu
-        mkdir -p /config/qBittorrent /downloads/incomplete /downloads/complete /downloads/watch
-        if [ ! -f /config/.seediku_qbittorrent_initialized ]; then
-          if [ -f /config/qBittorrent/qBittorrent.conf ]; then
-            awk '!/^(Accepted|WebUI\\(CSRFProtection|HostHeaderValidation|Password_PBKDF2|Port|Username))=/' /config/qBittorrent/qBittorrent.conf > /config/qBittorrent/qBittorrent.conf.tmp
-            mv /config/qBittorrent/qBittorrent.conf.tmp /config/qBittorrent/qBittorrent.conf
-          else
-            : > /config/qBittorrent/qBittorrent.conf
-          fi
-          cat >> /config/qBittorrent/qBittorrent.conf <<'EOF'
-
-        [LegalNotice]
-        Accepted=true
-
-        [Preferences]
-        WebUI\CSRFProtection=false
-        WebUI\HostHeaderValidation=false
-        WebUI\Password_PBKDF2="@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)"
-        WebUI\Port=8185
-        WebUI\Username=admin
-        EOF
-          touch /config/.seediku_qbittorrent_initialized
-        fi
-        chown -R "${PUID:-1000}:${PGID:-1000}" /config /downloads 2>/dev/null || true
-        exec /init
     environment:
-      # ANPASSEN: Falls Docker auf deinem Host andere User-/Gruppen-IDs braucht.
-      PUID: "1000"
-      PGID: "1000"
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
       TZ: "Europe/Berlin"
       WEBUI_PORT: "8185"
       TORRENTING_PORT: "6881"
     volumes:
-      - type: bind
-        source: /DATA/AppData/seediku/config/qbittorrent
-        target: /config
-      - type: bind
-        source: /DATA/AppData/seediku/downloads/incomplete
-        target: /downloads/incomplete
-      - type: bind
-        source: /DATA/AppData/seediku/downloads/complete
-        target: /downloads/complete
-      - type: bind
-        source: /DATA/AppData/seediku/downloads/watch
-        target: /downloads/watch
+      - qbittorrent-config:/config
+      - downloads-incomplete:/downloads/incomplete
+      - downloads-complete:/downloads/complete
+      - downloads-watch:/downloads/watch
     ports:
       - target: 8185
-        published: "8185"
+        published: "127.0.0.1:8185"
         protocol: tcp
       - target: 6881
         published: "6881"
@@ -124,6 +87,12 @@ services:
       - target: 6881
         published: "6881"
         protocol: udp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8185/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       seediku-net:
         aliases:
@@ -133,6 +102,20 @@ services:
 networks:
   seediku-net:
     name: seediku-net
+
+secrets:
+  ishiku_setup_secret:
+    file: ./secrets/setup_secret.txt
+  qbittorrent_password:
+    file: ./secrets/qbittorrent_password.txt
+
+volumes:
+  seediku-data:
+  seediku-config:
+  qbittorrent-config:
+  downloads-incomplete:
+  downloads-complete:
+  downloads-watch:
 
 x-casaos:
   author: self

@@ -69,7 +69,7 @@ export async function verifyPassword(password, encoded) {
 
 function scrypt(password, salt) {
   return new Promise((resolve, reject) => {
-    crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (error, key) => {
+    crypto.scrypt(password, salt, 64, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 }, (error, key) => {
       if (error) reject(error);
       else resolve(key);
     });
@@ -84,21 +84,21 @@ export function validateAdminSetup({ setupSecret, expectedSecret, username, disp
   const expected = String(expectedSecret || "");
   const normalizedPassword = String(password || "").trim().toLowerCase();
 
-  if (!secret.trim()) errors.setup_secret = "Setup-Secret ist erforderlich.";
-  if (!expected.trim()) errors.setup_secret = "Setup ist nicht konfiguriert.";
-  if (secret && expected && !timingSafeTextEqual(secret, expected)) errors.setup_secret = "Setup-Secret ist nicht korrekt.";
-  if (!normalizedDisplayName) errors.admin_display_name = "Anzeigename ist erforderlich.";
-  if (!normalizedUsername) errors.admin_username = "Admin-Benutzername ist erforderlich.";
+  if (!secret.trim()) errors.setup_secret = "Setup secret is required.";
+  if (!expected.trim()) errors.setup_secret = "Setup is not configured.";
+  if (secret && expected && !timingSafeTextEqual(secret, expected)) errors.setup_secret = "Setup secret is incorrect.";
+  if (!normalizedDisplayName) errors.admin_display_name = "Display name is required.";
+  if (!normalizedUsername) errors.admin_username = "Administrator username is required.";
   if (!/^[a-zA-Z0-9._-]{3,48}$/.test(normalizedUsername)) {
-    errors.admin_username = "Nutze 3 bis 48 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.";
+    errors.admin_username = "Use 3 to 48 letters, numbers, dots, underscores, or hyphens.";
   }
-  if (String(password || "").length < 12) errors.admin_password = "Das Admin-Passwort muss mindestens 12 Zeichen lang sein.";
-  if (password && setupSecret && password === setupSecret) errors.admin_password = "Das Admin-Passwort darf nicht mit dem Setup-Secret übereinstimmen.";
-  if (normalizedPassword && PLACEHOLDER_PASSWORDS.has(normalizedPassword)) errors.admin_password = "Bitte verwende kein Platzhalter-Passwort.";
+  if (String(password || "").length < 12) errors.admin_password = "The administrator password must contain at least 12 characters.";
+  if (password && setupSecret && password === setupSecret) errors.admin_password = "The administrator password must differ from the setup secret.";
+  if (normalizedPassword && PLACEHOLDER_PASSWORDS.has(normalizedPassword)) errors.admin_password = "Do not use a placeholder password.";
   if (normalizedPassword && ["seediku", "torrentloader", normalizedUsername.toLowerCase()].includes(normalizedPassword)) {
-    errors.admin_password = "Das Admin-Passwort darf nicht App-Name, App-ID oder Benutzername sein.";
+    errors.admin_password = "The administrator password must differ from the app name, app ID, and username.";
   }
-  if (password !== passwordConfirm) errors.admin_password_confirm = "Die Passwörter stimmen nicht überein.";
+  if (password !== passwordConfirm) errors.admin_password_confirm = "The passwords do not match.";
 
   return { valid: Object.keys(errors).length === 0, errors };
 }

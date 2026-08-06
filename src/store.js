@@ -53,7 +53,7 @@ export class JsonStore {
 
   async createFirstAdmin(user) {
     if (this.hasAdmin() || this.state.setupCompleted) {
-      throw Object.assign(new Error("Setup ist bereits abgeschlossen."), { status: 409 });
+      throw Object.assign(new Error("Setup is already complete."), { status: 409 });
     }
     const now = new Date().toISOString();
     const admin = {
